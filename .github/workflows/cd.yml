@@ -1,0 +1,117 @@
+name: cd
+
+on:
+  push:
+    branches: [main]
+
+concurrency: cd-main
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ACR_NAME: ${{ vars.ACR_NAME }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      WEBAPP_NAME: ${{ vars.WEBAPP_NAME }}
+      API_AUDIENCE: ${{ vars.API_AUDIENCE }}
+      APP_VERSION: ${{ vars.APP_VERSION_PREFIX }}-${{ github.run_number }}
+      IMAGE: ${{ vars.ACR_NAME }}.azurecr.io/hackathon-assessment-api:${{ github.sha }}
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check portal-provisioned deployment inputs
+        env:
+          VERSION_PREFIX: ${{ vars.APP_VERSION_PREFIX }}
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -euo pipefail
+          for name in ACR_NAME RESOURCE_GROUP WEBAPP_NAME VERSION_PREFIX AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID; do
+            if test -z "${!name}"; then
+              echo "::error::Missing production variable: $name"
+              exit 1
+            fi
+          done
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Log in to existing ACR
+        run: az acr login --name "$ACR_NAME"
+      - name: Build SHA-tagged image
+        run: docker build --build-arg APP_VERSION="$APP_VERSION" --build-arg GIT_COMMIT_SHA="$GITHUB_SHA" -t "$IMAGE" .
+      - name: Scan image before push
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+      - name: Push and record image digest
+        id: push
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE"
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE")
+          test -n "$digest"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Image: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Digest: \`$digest\`" >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy to existing App Service
+        run: |
+          set -euo pipefail
+          az webapp config container set -g "$RESOURCE_GROUP" -n "$WEBAPP_NAME" \
+            --container-image-name "$IMAGE" >/dev/null
+          az webapp config appsettings set -g "$RESOURCE_GROUP" -n "$WEBAPP_NAME" \
+            --settings "GIT_COMMIT_SHA=$GITHUB_SHA" "APP_VERSION=$APP_VERSION" >/dev/null
+      - name: Verify deployed health and commit
+        run: |
+          set -euo pipefail
+          healthy=false
+          deadline=$((SECONDS + 300))
+          while (( SECONDS < deadline )); do
+            if curl -fsS --max-time 10 "https://$WEBAPP_NAME.azurewebsites.net/health" |
+              jq -e --arg sha "$GITHUB_SHA" '.commitSha == $sha' >/dev/null; then
+              healthy=true
+              break
+            fi
+            sleep 15
+          done
+          if test "$healthy" != true; then
+            echo "::error::App Service /health did not report the deployed commit within 5 minutes"
+            exit 1
+          fi
+      - name: Smoke assessment and warm cache
+        run: |
+          set -euo pipefail
+          if test -z "$API_AUDIENCE"; then
+            echo "::warning::SKIPPED: API_AUDIENCE tanımlı değil (organizasyon önkoşulu)"
+            echo "Assessment smoke: SKIPPED (API_AUDIENCE not configured)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          token=$(az account get-access-token --resource "$API_AUDIENCE" --query accessToken -o tsv)
+          test -n "$token"
+          response_file=$(mktemp)
+          trap 'rm -f "$response_file"' EXIT
+          status=$(curl --silent --show-error --max-time 240 -o "$response_file" -w '%{http_code}' \
+            -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+            -d '{"question":"Bu repository için tam değerlendirme raporu üret."}' \
+            "https://$WEBAPP_NAME.azurewebsites.net/api/ask")
+          echo "Assessment HTTP status: $status"
+          test "$status" = 200
+          answer_type=$(jq -er '.answerType | select(type == "string" and length > 0)' "$response_file")
+          echo "Assessment answerType: $answer_type"

@@ -19,7 +19,7 @@ Commit başlıklarında `feat:`, `fix:`, `docs:`, `test:`, `chore:`, `ci:` kulla
 ## Zorunlu kontroller
 
 `main` ve `development` ruleset'leri PR, en az bir insan onayı ve şu check'leri
-zorunlu kılmalıdır: `ci / build-test`, `dependency-review` ve
+zorunlu kılmalıdır: `ci / build-test`, `ci / container-smoke`, `dependency-review` ve
 `branch-policy`. Force-push yasaklanmalıdır. CI restore, uyarılar-hata build,
 GatewayLive hariç test/coverage/TRX ve format kontrolü yapar. P11 image tarama,
 ACR push ve App Service deploy aşamalarını ekler.
@@ -46,6 +46,16 @@ Kırmızı GHAS/CI check'i için `main` dalına GitHub'ın “Fix with Copilot�
 önerisinden doğrudan PR açılmaz. Düzeltme ilgili PR'a `@copilot` yorumuyla
 veya `development` üzerinden açılan `fix/<issue-no>-<kısa-ad>` dalıyla yapılır;
 insan onayı ve check'ler olmadan merge edilmez.
+
+P11 kaynakları Azure Portal'da elle hazırlar; CI'da Bicep build yoktur.
+`ci.yml` reusable olarak main CD tarafından çağrılır: build/test/format
+ardından container health/SHA, non-root, prompts ve Docker HEALTHCHECK
+doğrulanır. Main push'unda production onayından sonra OIDC ile mevcut ACR'a
+login, image build ve Trivy taraması, SHA tag push/digest kaydı, mevcut App
+Service container güncellemesi ve canlı smoke gerçekleşir. Portal kontrol
+listesi ve rollback `docs/azure-architecture.md` ve `docs/operations.md`
+içindedir. GitHub vars veya Azure RBAC yoksa canlı doğrulama **beklemede**;
+başarılı varsayılmaz.
 
 | PR kaynağı | Hedef | Sonuç |
 |---|---|---|

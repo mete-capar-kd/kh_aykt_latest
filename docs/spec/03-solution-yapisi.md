@@ -47,9 +47,11 @@ tests/
 docs/
   architecture.md  api.md  tools.md  scoring.md  prompts.md  sso.md  observability.md
   azure-architecture.md  cicd.md  security.md  operations.md  evidence-matrix.md  ai-safety.md  adr/
-infra/                               (Bicep IaC)
 .github/  copilot-instructions.md  pull_request_template.md  ISSUE_TEMPLATE/  workflows/
 ```
+
+P11'de Azure kaynakları Bicep yerine portalda ekip tarafından kurulur;
+kurulum ve doğrulama kontrol listesi `docs/azure-architecture.md` içindedir.
 
 - **Solution'da yalnız iki proje vardır:** `src/Hackathon.Assessment.Api` (uygulama) ve `tests/Hackathon.Assessment.Tests` (test). Ek class library, ek uygulama veya ek test projesi **açılmaz**. Katman ayrımı proje ile değil, klasör ve namespace ile yapılır (`Hackathon.Assessment.Api.Domain`, `...Agents`, `...Ai` vb.).
 - Klasör bağımlılık kuralı yasak referans listesi olarak tanımlanır:

@@ -1,6 +1,7 @@
 name: ci
 
 on:
+  workflow_call:
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [development, main]
@@ -33,3 +34,50 @@ jobs:
           name: test-results
           path: TestResults/
           if-no-files-found: warn
+
+  container-smoke:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build container
+        run: docker build --build-arg APP_VERSION=ci --build-arg GIT_COMMIT_SHA="${{ github.sha }}" -t assess:ci .
+      - name: Start container
+        run: docker run -d -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Testing -e Cache__WarmupOnStartup=false --name app assess:ci
+      - name: Check health, contents and non-root runtime
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ready=false
+          deadline=$((SECONDS + 60))
+          while (( SECONDS < deadline )); do
+            if curl -fsS --max-time 4 http://localhost:8080/health |
+              jq -e --arg sha "$EXPECTED_SHA" '.commitSha == $sha' >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 5
+          done
+          if test "$ready" != true; then
+            echo "::error::Container /health did not return the expected commit within 60 seconds"
+            exit 1
+          fi
+          test "$(docker exec app id -u)" != 0
+          docker exec app ls /app/prompts/system /app/prompts/metrics /app/prompts/rubrics >/dev/null
+          healthy=false
+          deadline=$((SECONDS + 90))
+          while (( SECONDS < deadline )); do
+            if test "$(docker inspect --format '{{.State.Health.Status}}' app)" = healthy; then
+              healthy=true
+              break
+            fi
+            sleep 5
+          done
+          if test "$healthy" != true; then
+            echo "::error::Docker HEALTHCHECK did not become healthy within 90 seconds"
+            exit 1
+          fi
+      - name: Remove container
+        if: always()
+        run: docker rm -f app || true
