@@ -1,0 +1,39 @@
+metricId: m01
+metricName: Kod ve Proje Yapısı Standartları
+sourceRef: "UseCase §6.1"
+subChecks:
+  - id: m01-sc01
+    title: Solution ve proje yapısı
+    codeVerifiable: true
+  - id: m01-sc02
+    title: katman ayrımı
+    codeVerifiable: true
+  - id: m01-sc03
+    title: dependency yönleri
+    codeVerifiable: true
+  - id: m01-sc04
+    title: circular dependency
+    codeVerifiable: true
+  - id: m01-sc05
+    title: isimlendirme standartları
+    codeVerifiable: true
+  - id: m01-sc06
+    title: ortak bileşen kullanımı
+    codeVerifiable: true
+  - id: m01-sc07
+    title: business logic konumlandırması
+    codeVerifiable: true
+  - id: m01-sc08
+    title: controller sorumlulukları ve dependency injection kullanımı
+    codeVerifiable: true
+acceptanceCriteria:
+  - mimari ihlali doğru tespit etmeli
+  - ilgili dosya/proje/metot bilgisini göstermeli
+  - ihlal edilen Holding standardını belirtmeli
+  - uygulanabilir refactoring önerisi sunmalı.
+severityGuide:
+  critical: Mimari sınır ihlali doğrudan geniş yetki veya veri bütünlüğü kaybı yaratıyor.
+  high: Döngü veya ters bağımlılık kritik değişiklik ve hata riskini belirgin artırıyor.
+  medium: Sorumluluk veya katman ayrımı sürdürülebilirliği somut biçimde zayıflatıyor.
+  low: Yerel isimlendirme ya da ortak bileşen sapması sınırlı bakım yükü yaratıyor.
+  info: Kanıtlı, risk oluşturmayan mimari iyileştirme fırsatı.

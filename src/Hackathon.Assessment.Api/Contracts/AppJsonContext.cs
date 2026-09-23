@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using Hackathon.Assessment.Api.Agents;
+using Hackathon.Assessment.Api.Domain;
 using Hackathon.Assessment.Api.Tools;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +15,8 @@ namespace Hackathon.Assessment.Api.Contracts;
 [JsonSerializable(typeof(ProblemDetails))]
 [JsonSerializable(typeof(ValidationProblemDetails))]
 [JsonSerializable(typeof(OpenAiToolDefinition[]))]
+[JsonSerializable(typeof(RepoProfile))]
+[JsonSerializable(typeof(EvaluationOutcome))]
 [JsonSerializable(typeof(ChatRequest))]
 [JsonSerializable(typeof(ChatResponse))]
 [JsonSerializable(typeof(OpenAiChatRequest))]

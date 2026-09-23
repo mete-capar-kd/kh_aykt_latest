@@ -1,0 +1,42 @@
+metricId: m08
+metricName: Container ve Çalışma Ortamı Standartları
+sourceRef: "UseCase §6.8"
+subChecks:
+  - id: m08-sc01
+    title: Dockerfile varlığı
+    codeVerifiable: true
+  - id: m08-sc02
+    title: onaylı base image
+    codeVerifiable: false
+  - id: m08-sc03
+    title: multi-stage build
+    codeVerifiable: true
+  - id: m08-sc04
+    title: non-root çalışma
+    codeVerifiable: true
+  - id: m08-sc05
+    title: image boyutu
+    codeVerifiable: false
+  - id: m08-sc06
+    title: port ve health check
+    codeVerifiable: true
+  - id: m08-sc07
+    title: environment variable kullanımı
+    codeVerifiable: true
+  - id: m08-sc08
+    title: secret yönetimi
+    codeVerifiable: true
+  - id: m08-sc09
+    title: CPU/memory limitleri ve stateless çalışma
+    codeVerifiable: true
+acceptanceCriteria:
+  - Dockerfile ve deployment manifestlerini birlikte değerlendirmeli
+  - güvenlik ve operasyon risklerini ayrı açıklamalı
+  - uygun base image veya non-root çalışma önermeli
+  - kanıtı olmayan altyapı konularında varsayım yapmamalı.
+severityGuide:
+  critical: Image veya çalışma yapılandırması kritik secret'ı ya da host'u doğrudan açığa çıkarıyor.
+  high: Root çalışma, güvensiz image veya kalıcı state önemli güvenlik ya da süreklilik riski yaratıyor.
+  medium: Health, limit veya build yapısı operasyon dayanıklılığını somut biçimde zayıflatıyor.
+  low: Image ve environment yapılandırması sınırlı boyut veya bakım yükü yaratıyor.
+  info: Kanıtlı, risk oluşturmayan container iyileştirme fırsatı.

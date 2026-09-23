@@ -1,0 +1,36 @@
+metricId: m04
+metricName: Veri Yönetimi ve Entegrasyon Standartları
+sourceRef: "UseCase §6.4"
+subChecks:
+  - id: m04-sc01
+    title: Veritabanı erişim standartları
+    codeVerifiable: true
+  - id: m04-sc02
+    title: migration yönetimi
+    codeVerifiable: true
+  - id: m04-sc03
+    title: transaction kullanımı
+    codeVerifiable: true
+  - id: m04-sc04
+    title: timeout ve retry politikaları
+    codeVerifiable: true
+  - id: m04-sc05
+    title: API istemci yönetimi
+    codeVerifiable: true
+  - id: m04-sc06
+    title: kişisel/hassas veri kullanımı
+    codeVerifiable: true
+  - id: m04-sc07
+    title: harici servis bağımlılıkları ve API versioning
+    codeVerifiable: true
+acceptanceCriteria:
+  - veri tutarlılığı veya entegrasyon dayanıklılığı etkisini açıklamalı
+  - ilgili kod bloğunu göstermeli
+  - genel öneri yerine teknik çözüm sunmalı
+  - retry önerirken idempotency riskini dikkate almalı.
+severityGuide:
+  critical: Akış doğrulanmış biçimde geri döndürülemez veri kaybı veya geniş hassas veri açığı yaratıyor.
+  high: Transaction veya entegrasyon hatası önemli tutarsızlık ya da kesinti riski taşıyor.
+  medium: Dayanıklılık veya veri yönetimi sapması sınırlı koşullarda gerçek etki yaratıyor.
+  low: Yerel istemci, versioning veya migration sapması bakım ve operasyon yükü oluşturuyor.
+  info: Kanıtlı, risk oluşturmayan veri ya da entegrasyon iyileştirme fırsatı.

@@ -105,9 +105,15 @@ public sealed record AssessmentReport(
 public sealed record RepoProfile(
     string RepositoryUrl,
     string CommitSha,
-    ImmutableArray<string> Languages,
+    ImmutableArray<string> Stacks,
+    ImmutableArray<RepoLayer> Layers,
     ImmutableArray<string> EntryPoints,
+    ImmutableArray<MetricApplicability> ApplicableMetrics,
     ImmutableArray<string> ManifestFiles);
+
+public sealed record RepoLayer(string Name, ImmutableArray<string> Paths);
+
+public sealed record MetricApplicability(MetricId MetricId, bool Applicable, string Reason);
 
 public sealed record CandidateFinding(
     string RuleId,
