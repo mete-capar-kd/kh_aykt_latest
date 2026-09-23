@@ -20,6 +20,8 @@ using Hackathon.Assessment.Api.Tools;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 
+if (args.Contains("--healthcheck")) return await HealthProbe.RunAsync(null, default);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -161,6 +163,7 @@ app.MapAskEndpoint();
 app.MapHealthEndpoint();
 
 app.Run();
+return 0;
 
 public partial class Program
 {
