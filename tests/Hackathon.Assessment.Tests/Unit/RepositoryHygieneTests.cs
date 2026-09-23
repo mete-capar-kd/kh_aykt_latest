@@ -100,7 +100,20 @@ public sealed class RepositoryHygieneTests
     {
         var props = XDocument.Load(Path.Combine(RepositoryRoot(), "Directory.Packages.props"));
         var versions = props.Descendants("PackageVersion").ToArray();
-        Assert.Equal(4, versions.Length);
+        var packageIds = versions
+            .Select(item => item.Attribute("Include")?.Value ?? "")
+            .Order(StringComparer.Ordinal);
+        var expectedPackageIds = new[]
+        {
+            "coverlet.collector",
+            "Microsoft.AspNetCore.Mvc.Testing",
+            "Microsoft.NET.Test.Sdk",
+            "NetArchTest.Rules",
+            "NSubstitute",
+            "xunit",
+            "xunit.runner.visualstudio"
+        }.Order(StringComparer.Ordinal);
+        Assert.Equal(expectedPackageIds, packageIds);
         Assert.All(versions, item =>
         {
             var version = item.Attribute("Version")?.Value ?? "";
