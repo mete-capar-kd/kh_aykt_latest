@@ -26,7 +26,9 @@ public sealed class RepositoryHygieneTests
         "Cache__SnapshotMaxBytes", "RateLimit__PermitsPerMinute",
         "RateLimit__QueueLimit", "RateLimit__ExemptClientIds__0",
         "Safety__CanaryToken", "APPLICATIONINSIGHTS_CONNECTION_STRING",
-        "Telemetry__Team", "Telemetry__Application", "Telemetry__Environment"
+        "Apim__RouteStyle", "Apim__ApiVersion", "Apim__CacheStatusHeader",
+        "Telemetry__Team", "Telemetry__Application", "Telemetry__Environment",
+        "Telemetry__SamplingRatio"
     ];
 
     private static readonly string[] SecretKeys =
@@ -112,7 +114,8 @@ public sealed class RepositoryHygieneTests
             "NetArchTest.Rules",
             "NSubstitute",
             "xunit",
-            "xunit.runner.visualstudio"
+            "xunit.runner.visualstudio",
+            "Azure.Monitor.OpenTelemetry.AspNetCore"
         }.Order(StringComparer.Ordinal);
         Assert.Equal(expectedPackageIds, packageIds);
         Assert.All(versions, item =>

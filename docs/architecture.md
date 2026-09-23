@@ -53,4 +53,8 @@ sequenceDiagram
 | CI/CD ve deploy | `.github/workflows/`, `infra/` | P11 |
 | Sistem entegrasyonu ve operasyon kanıtı | `tests/`, `docs/` | P12 |
 
-Bağlayıcı ayrıntılar: [spec dizini](spec/README.md), [solution yapısı](spec/03-solution-yapisi.md), [runtime zinciri](spec/02-runtime-zinciri.md), [API sözleşmesi](spec/11-api-sozlesmesi.md), [ADR'ler](adr/README.md).
+Tüm model trafiği `IApimAiGatewayClient` üzerinden ortak APIM AI Gateway'e gider;
+`Apim:RouteStyle` `AzureDeployments` deployment URL'si veya OpenAI v1 route'unu
+seçer. Foundry'ye doğrudan trafik yasaktır. Ayrıntılar: [spec dizini](spec/README.md),
+[solution yapısı](spec/03-solution-yapisi.md), [runtime zinciri](spec/02-runtime-zinciri.md),
+[API sözleşmesi](spec/11-api-sozlesmesi.md), [ADR'ler](adr/README.md).

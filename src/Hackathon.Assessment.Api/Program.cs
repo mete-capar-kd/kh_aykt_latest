@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
+using Hackathon.Assessment.Api.Ai;
 using Hackathon.Assessment.Api.Auth;
 using Hackathon.Assessment.Api.Contracts;
 using Hackathon.Assessment.Api.Endpoints;
@@ -11,6 +12,7 @@ using Hackathon.Assessment.Api.Orchestration;
 using Hackathon.Assessment.Api.Safety;
 using Hackathon.Assessment.Api.Scanners;
 using Hackathon.Assessment.Api.Snapshot;
+using Hackathon.Assessment.Api.Telemetry;
 using Hackathon.Assessment.Api.Tools;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
@@ -29,9 +31,16 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEntraIdAuthentication(builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ApplicationUptime>();
+builder.Services.AddSingleton<SafetyMetrics>();
 builder.Services.AddSingleton<IInputGuard, InputGuard>();
 builder.Services.AddSingleton<IAskOrchestrator, StubAskOrchestrator>();
 builder.Services.AddScoped<AskEndpoints.AskRequestValidationFilter>();
+builder.Services.AddHttpClient<IApimAiGatewayClient, ApimAiGatewayClient>(
+        ApimAiGatewayClient.ConfigureHttpClient)
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AllowAutoRedirect = false
+    });
 builder.Services.AddHttpClient("github")
     .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(60))
     .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
@@ -56,6 +65,19 @@ builder.Services.AddSingleton<IReadOnlyRepositoryTool, ReadFileTool>();
 builder.Services.AddSingleton<IReadOnlyRepositoryTool, RunScannerTool>();
 builder.Services.AddSingleton<IReadOnlyRepositoryTool, RecordFindingTool>();
 builder.Services.AddSingleton<IToolDispatcher, ToolDispatcher>();
+builder.Services.AddSingleton<IRetryDelayStrategy, RetryDelayStrategy>();
+builder.Services.AddSingleton<IApimCredentialProvider>(services =>
+{
+    var options = services.GetRequiredService<IOptions<ApimOptions>>().Value;
+    return options.Auth.Scheme switch
+    {
+        "SubscriptionKey" => new SubscriptionKeyCredentialProvider(
+            services.GetRequiredService<IOptions<ApimOptions>>()),
+        "None" or ApimOptions.OrganizationPlaceholder => new NoApimCredentialProvider(),
+        _ => throw new InvalidOperationException(
+            "Apim:Auth:Scheme is unsupported until the organization confirms its caller authentication scheme.")
+    };
+});
 
 builder.Services.AddOptions<AssessmentOptions>()
     .BindConfiguration("Assessment")
@@ -69,8 +91,18 @@ builder.Services.AddOptions<RateLimitOptions>()
     .BindConfiguration(RateLimitOptions.SectionName)
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<ApimOptions>()
+    .BindConfiguration(ApimOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<ApimOptions>, ApimOptionsValidator>();
+builder.Services.AddOptions<TelemetryOptions>()
+    .BindConfiguration(TelemetryOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<RepositoryOptions>, OrganizationPlaceholderValidator>();
 builder.Services.AddSingleton<IValidateOptions<EntraIdOptions>, OrganizationPlaceholderValidator>();
+builder.Services.AddAssessmentOpenTelemetry(builder.Configuration);
 builder.Services.AddAskRateLimiter();
 
 var app = builder.Build();
