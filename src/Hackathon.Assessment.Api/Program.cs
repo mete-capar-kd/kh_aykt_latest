@@ -11,6 +11,7 @@ using Hackathon.Assessment.Api.Masking;
 using Hackathon.Assessment.Api.Middleware;
 using Hackathon.Assessment.Api.Options;
 using Hackathon.Assessment.Api.Orchestration;
+using Hackathon.Assessment.Api.Reporting;
 using Hackathon.Assessment.Api.Safety;
 using Hackathon.Assessment.Api.Scanners;
 using Hackathon.Assessment.Api.Snapshot;
@@ -35,11 +36,17 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ApplicationUptime>();
 builder.Services.AddSingleton<SafetyMetrics>();
 builder.Services.AddSingleton<IInputGuard, InputGuard>();
-builder.Services.AddSingleton<IAskOrchestrator, StubAskOrchestrator>();
+builder.Services.AddSingleton<IAskOrchestrator, AskOrchestrator>();
 builder.Services.AddSingleton(_ =>
     new PromptCatalog(Path.Combine(AppContext.BaseDirectory, "prompts")));
 builder.Services.AddSingleton<ProfilerAgent>();
 builder.Services.AddSingleton<MetricEvaluator>();
+builder.Services.AddSingleton<SynthesizerAgent>();
+builder.Services.AddSingleton<ReportBuilder>();
+builder.Services.AddSingleton(services => new ProfileResultCache(
+    services.GetRequiredService<IConfiguration>().GetValue("Cache:MetricResultMaxEntries", 1000),
+    TimeSpan.FromMinutes(services.GetRequiredService<IConfiguration>().GetValue(
+        "Cache:MetricResultTtlMinutes", 120))));
 builder.Services.AddScoped<AskEndpoints.AskRequestValidationFilter>();
 builder.Services.AddHttpClient<IApimAiGatewayClient, ApimAiGatewayClient>(
         ApimAiGatewayClient.ConfigureHttpClient)

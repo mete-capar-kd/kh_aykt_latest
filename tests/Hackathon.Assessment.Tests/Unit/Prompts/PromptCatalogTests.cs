@@ -122,6 +122,7 @@ public sealed partial class PromptCatalogTests
 
         Assert.InRange(catalog.ProfilerSystemPrompt.Length, 1, 2500);
         Assert.InRange(catalog.EvaluatorSystemPrompt.Length, 1, 5000);
+        Assert.Contains("Report Synthesizer", catalog.SynthesizerSystemPrompt);
     }
 
     [Fact]

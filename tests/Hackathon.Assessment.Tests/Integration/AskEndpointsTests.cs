@@ -26,7 +26,7 @@ namespace Hackathon.Assessment.Tests.Integration;
 public sealed class AskEndpointsTests
 {
     [Fact]
-    public async Task ValidRequestReturnsStubWithOrderedMetricsAndCorrelationId()
+    public async Task ValidRequestReturnsContractFakeWithOrderedMetricsAndCorrelationId()
     {
         using var factory = new AssessmentApiFactory();
         using var client = factory.CreateAuthenticatedClient();
@@ -452,17 +452,18 @@ internal sealed class AssessmentApiFactory : WebApplicationFactory<Program>
         string environment = "Testing",
         IReadOnlyDictionary<string, string?>? settings = null,
         Action<IServiceCollection>? configureServices = null,
-        Action<ILoggingBuilder>? configureLogging = null)
+        Action<ILoggingBuilder>? configureLogging = null,
+        bool useRealOrchestrator = false)
     {
         _environment = environment;
         _settings = settings;
         _configureLogging = configureLogging;
         _configureServices = services =>
         {
-            if (orchestrator is not null)
+            if (orchestrator is not null || !useRealOrchestrator)
             {
                 services.RemoveAll<IAskOrchestrator>();
-                services.AddSingleton(orchestrator);
+                services.AddSingleton(orchestrator ?? CreateContractFake());
             }
 
             configureServices?.Invoke(services);
@@ -505,6 +506,51 @@ internal sealed class AssessmentApiFactory : WebApplicationFactory<Program>
             JwtBearerDefaults.AuthenticationScheme,
             token ?? TestJwt.CreateToken());
         return client;
+    }
+
+    private static IAskOrchestrator CreateContractFake()
+    {
+        var fake = Substitute.For<IAskOrchestrator>();
+        fake.AskAsync(
+                Arg.Any<AskContext>(),
+                Arg.Any<AskRequest>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var context = call.Arg<AskContext>();
+                var request = call.Arg<AskRequest>();
+                var metrics = MetricNames.All.Select(id => new MetricResult(
+                    id,
+                    MetricNames.GetName(id),
+                    MetricStatus.Degerlendirilemedi,
+                    null,
+                    "Değerlendirme motoru henüz etkin değil.",
+                    "Değerlendirme motoru henüz etkin değil.",
+                    Coverage.None,
+                    [],
+                    [],
+                    "Test contract fake.",
+                    0,
+                    0,
+                    0)).ToImmutableArray();
+                return Task.FromResult(new AskResponse(
+                    "Değerlendirme motoru henüz etkin değil.",
+                    AnswerType.InsufficientEvidence,
+                    "stub",
+                    [],
+                    context.CorrelationId,
+                    new AssessmentReport(
+                        "job",
+                        request.RepositoryUrl!,
+                        request.Ref!,
+                        "test-commit",
+                        metrics,
+                        null,
+                        "",
+                        DateTimeOffset.UnixEpoch,
+                        new ModelInfo(null, "test", "test", "test", "stub"))));
+            });
+        return fake;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

@@ -26,11 +26,12 @@ public sealed class PromptCatalog
         var loadedFiles = new List<LoadedPromptFile>();
         ProfilerSystemPrompt = LoadText(root, "system/profiler.md", loadedFiles);
         EvaluatorSystemPrompt = LoadText(root, "system/evaluator.md", loadedFiles);
+        SynthesizerSystemPrompt = LoadText(root, "system/synthesizer.md", loadedFiles);
         foreach (var systemFile in Directory.EnumerateFiles(
             Path.Combine(root, "system"), "*.md", SearchOption.TopDirectoryOnly))
         {
             var name = Path.GetFileName(systemFile);
-            if (name is "profiler.md" or "evaluator.md")
+            if (name is "profiler.md" or "evaluator.md" or "synthesizer.md")
             {
                 continue;
             }
@@ -62,6 +63,8 @@ public sealed class PromptCatalog
     public string EvaluatorSystemPrompt { get; }
 
     public string ProfilerSystemPrompt { get; }
+
+    public string SynthesizerSystemPrompt { get; }
 
     public MetricPrompt GetMetric(MetricId id)
     {

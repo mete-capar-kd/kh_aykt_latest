@@ -63,11 +63,7 @@ public sealed class MetricResultCache : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(promptVersion);
         ArgumentNullException.ThrowIfNull(valueFactory);
 
-        var key = new MetricResultCacheKey(
-            repositoryUrl.ToLowerInvariant(),
-            commitSha,
-            metricId,
-            promptVersion);
+        var key = CreateKey(repositoryUrl, commitSha, metricId, promptVersion);
 
         if (_completed.TryGetValue(key, out EvaluationOutcome? cached)
             && cached is not null)
@@ -86,7 +82,24 @@ public sealed class MetricResultCache : IDisposable
         return await sharedTask.WaitAsync(callerToken).ConfigureAwait(false);
     }
 
+    public bool IsCached(
+        string repositoryUrl,
+        string commitSha,
+        MetricId metricId,
+        string promptVersion) =>
+        _completed.TryGetValue(
+            CreateKey(repositoryUrl, commitSha, metricId, promptVersion),
+            out EvaluationOutcome? cached)
+        && cached is not null;
+
     public void Dispose() => _completed.Dispose();
+
+    private static MetricResultCacheKey CreateKey(
+        string repositoryUrl,
+        string commitSha,
+        MetricId metricId,
+        string promptVersion) =>
+        new(repositoryUrl.ToLowerInvariant(), commitSha, metricId, promptVersion);
 
     private async Task CompleteAsync(
         MetricResultCacheKey key,

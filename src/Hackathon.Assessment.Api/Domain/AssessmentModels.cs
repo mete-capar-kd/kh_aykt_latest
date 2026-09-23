@@ -85,7 +85,7 @@ public sealed record MetricResult(
     int RejectedFindings);
 
 public sealed record ModelInfo(
-    string Router,
+    string? Router,
     string Profiler,
     string Evaluator,
     string Synthesizer,
