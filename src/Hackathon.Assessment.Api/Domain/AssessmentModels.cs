@@ -111,11 +111,15 @@ public sealed record RepoProfile(
 
 public sealed record CandidateFinding(
     string RuleId,
-    string File,
-    int StartLine,
-    int EndLine,
-    string MaskedContext,
-    string FileRole);
+    ImmutableArray<MetricId> MetricIds,
+    string Path,
+    int Line,
+    string SeverityHint,
+    string Context,
+    string FileRole,
+    bool LikelyFalsePositive,
+    string? FalsePositiveReason,
+    string Message);
 
 public static class MetricNames
 {

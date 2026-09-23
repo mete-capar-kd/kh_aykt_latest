@@ -339,20 +339,26 @@ public sealed class RunScannerTool(IScannerRunner runner, ISecretMasker masker) 
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var candidates = runner.Run((MetricId)(metricNumber - 1), context.Snapshot);
+        var results = runner.Run((MetricId)(metricNumber - 1), context.Snapshot);
         return ToolResult.From(new
         {
-            candidates = candidates.Select(candidate => new
+            candidates = results.Candidates.Select(candidate => new
             {
                 ruleId = masker.Mask(candidate.RuleId),
-                file = masker.Mask(candidate.File),
-                candidate.StartLine,
-                candidate.EndLine,
-                context = masker.Mask(candidate.MaskedContext),
-                role = masker.Mask(candidate.FileRole)
+                metricIds = candidate.MetricIds.Select(metric => $"m{(int)metric + 1:00}"),
+                path = masker.Mask(candidate.Path),
+                line = candidate.Line,
+                severityHint = masker.Mask(candidate.SeverityHint),
+                context = masker.Mask(candidate.Context),
+                fileRole = masker.Mask(candidate.FileRole),
+                candidate.LikelyFalsePositive,
+                falsePositiveReason = candidate.FalsePositiveReason is null
+                    ? null
+                    : masker.Mask(candidate.FalsePositiveReason),
+                message = masker.Mask(candidate.Message)
             }),
-            truncated = false,
-            total = candidates.Length
+            truncated = results.Truncated,
+            total = results.Total
         });
     }
 }
