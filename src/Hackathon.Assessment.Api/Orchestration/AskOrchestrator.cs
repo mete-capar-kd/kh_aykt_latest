@@ -6,6 +6,7 @@ using Hackathon.Assessment.Api.Contracts;
 using Hackathon.Assessment.Api.Domain;
 using Hackathon.Assessment.Api.Options;
 using Hackathon.Assessment.Api.Reporting;
+using Hackathon.Assessment.Api.Safety;
 using Hackathon.Assessment.Api.Scoring;
 using Hackathon.Assessment.Api.Snapshot;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,9 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
     private readonly MetricResultCache _results;
     private readonly ProfileResultCache _profiles;
     private readonly SynthesizerAgent _synthesizer;
+    private readonly AskRouterAgent _router;
+    private readonly RefusalBuilder _refusals;
+    private readonly OutputGuard _outputGuard;
     private readonly PromptCatalog _catalog;
     private readonly ReportBuilder _reports;
     private readonly ILogger<AskOrchestrator> _logger;
@@ -35,7 +39,10 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
         MetricEvaluator evaluator,
         MetricResultCache results,
         ProfileResultCache profiles,
+        AskRouterAgent router,
         SynthesizerAgent synthesizer,
+        RefusalBuilder refusals,
+        OutputGuard outputGuard,
         PromptCatalog catalog,
         ReportBuilder reports,
         IOptions<AssessmentOptions> options,
@@ -47,7 +54,10 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
         _evaluator = evaluator;
         _results = results;
         _profiles = profiles;
+        _router = router;
         _synthesizer = synthesizer;
+        _refusals = refusals;
+        _outputGuard = outputGuard;
         _catalog = catalog;
         _reports = reports;
         _options = options.Value;
@@ -76,6 +86,35 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
 
     public void Dispose() => _fullAssessments.Dispose();
 
+    public async Task WarmupAsync(
+        string repositoryUrl,
+        string reference,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = await _snapshots.GetAsync(
+            new Uri(repositoryUrl, UriKind.Absolute),
+            reference,
+            cancellationToken);
+        var profile = await _profiles.GetOrAddAsync(
+            repositoryUrl,
+            snapshot.CommitSha,
+            _catalog.PromptVersion,
+            () => _profiler.ProfileAsync(
+                snapshot,
+                new AiCallContext("cache-warmup", null, "profile"),
+                CancellationToken.None),
+            cancellationToken);
+        var context = new AskContext("cache-warmup", "startup warmup", false, "system");
+        _ = await EvaluateSelectedAsync(
+            context,
+            repositoryUrl,
+            snapshot,
+            profile,
+            MetricNames.All,
+            cancellationToken);
+        _results.PinWarmupCommit(repositoryUrl, snapshot.CommitSha, _catalog.PromptVersion);
+    }
+
     private async Task<AskResponse> AssessAsync(
         AskContext context,
         AskRequest request,
@@ -85,16 +124,25 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
             ?? throw new ArgumentException("A validated repository URL is required.", nameof(request));
         var reference = request.Ref
             ?? throw new ArgumentException("A validated repository ref is required.", nameof(request));
+        var question = context.NormalizedQuestion;
+        var route = await _router.RouteAsync(
+            question,
+            context.SuspectedInjection,
+            new AiCallContext(context.CorrelationId, null, "routing"),
+            cancellationToken);
+        if (route.Intent is "unsafe" or "out_of_scope")
+        {
+            return _refusals.Build(route.Intent, route.Language, context.CorrelationId);
+        }
+
+        var language = route.Language == "other" ? "en" : route.Language;
+        var questionType = route.QuestionType;
+        var selected = request.Metrics is not null
+            ? request.Metrics.Select(ParseMetric).ToImmutableArray()
+            : route.Metrics.IsEmpty ? MetricNames.All : route.Metrics;
         var snapshot = await _snapshots.GetAsync(
             new Uri(repositoryUrl, UriKind.Absolute), reference, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-
-        var question = context.NormalizedQuestion;
-        var language = QuestionClassifier.Language(question);
-        var questionType = QuestionClassifier.QuestionType(question, language);
-        var selected = request.Metrics is null
-            ? MetricNames.All
-            : request.Metrics.Select(ParseMetric).ToImmutableArray();
         var missingFile = QuestionClassifier.MissingFile(question, snapshot);
         IReadOnlyDictionary<MetricId, EvaluationOutcome> outcomes;
         if (missingFile is not null)
@@ -121,7 +169,11 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
         {
             if (!selected.Contains(id))
             {
-                return NotAssessed(id, "İstekte seçilmedi");
+                return NotAssessed(
+                    id,
+                    request.Metrics is null
+                        ? "Bu soru için değerlendirilmedi"
+                        : "İstekte seçilmedi");
             }
 
             if (missingFile is not null)
@@ -140,7 +192,7 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
             ScoreCalculator.OverallScore(metrics),
             "",
             _timeProvider.GetUtcNow(),
-            new ModelInfo(null, "cheap", "cheap", "strong", _catalog.PromptVersion));
+            new ModelInfo(route.Deployment, "cheap", "cheap", "strong", _catalog.PromptVersion));
 
         var summary = "";
         var answer = "";
@@ -179,15 +231,7 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
             }
             catch (ContentFilteredException)
             {
-                return new AskResponse(
-                    language == "tr"
-                        ? "Bu isteğe yardımcı olamıyorum."
-                        : "I cannot help with this request.",
-                    AnswerType.Refusal,
-                    _catalog.PromptVersion,
-                    [],
-                    context.CorrelationId,
-                    null);
+                return _refusals.Build("content_filter", language, context.CorrelationId);
             }
             catch (GatewayException)
             {
@@ -204,6 +248,21 @@ public sealed partial class AskOrchestrator : IAskOrchestrator, IDisposable
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        var guarded = _outputGuard.Guard(answer, summary, report);
+        if (guarded.RefusalReason is not null)
+        {
+            return _refusals.Build(guarded.RefusalReason, language, context.CorrelationId);
+        }
+
+        answer = guarded.Answer;
+        summary = guarded.ExecutiveSummary;
+        if (answerType != AnswerType.InsufficientEvidence)
+        {
+            answerType = route.Intent == "repo_question"
+                ? AnswerType.RepoAnswer
+                : AnswerType.Assessment;
+        }
+
         report = report with { ReportMarkdown = _reports.Build(report, summary) };
         return new AskResponse(
             answer,

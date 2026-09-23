@@ -24,6 +24,8 @@ public static partial class AiTelemetry
         Meter.CreateCounter<long>("ai.tokens.cached", "token");
     internal static Counter<long> InjectionSuspectedCounter { get; } =
         Meter.CreateCounter<long>("safety.injection_suspected");
+    internal static Counter<long> RouterIntentCounter { get; } =
+        Meter.CreateCounter<long>("safety.router_intent");
     internal static Counter<long> RefusalCounter { get; } =
         Meter.CreateCounter<long>("safety.refusal");
     internal static Counter<long> LeakBlockedCounter { get; } =
@@ -57,8 +59,13 @@ public sealed class SafetyMetrics(ILogger<SafetyMetrics> logger)
     public void InjectionSuspected() =>
         Add(AiTelemetry.InjectionSuspectedCounter);
 
-    public void Refusal() =>
-        Add(AiTelemetry.RefusalCounter);
+    public void RouterIntent(string intent) =>
+        Add(AiTelemetry.RouterIntentCounter, new KeyValuePair<string, object?>("intent", intent));
+
+    public void Refusal(string reason) =>
+        Add(AiTelemetry.RefusalCounter, new KeyValuePair<string, object?>("reason", reason));
+
+    public void Refusal() => Refusal("unknown");
 
     public void LeakBlocked() =>
         Add(AiTelemetry.LeakBlockedCounter);
@@ -71,4 +78,7 @@ public sealed class SafetyMetrics(ILogger<SafetyMetrics> logger)
 
     private void Add(Counter<long> counter) =>
         AiTelemetry.TryRecord(logger, () => counter.Add(1));
+
+    private void Add(Counter<long> counter, KeyValuePair<string, object?> tag) =>
+        AiTelemetry.TryRecord(logger, () => counter.Add(1, tag));
 }

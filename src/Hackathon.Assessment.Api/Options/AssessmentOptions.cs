@@ -14,6 +14,9 @@ public sealed class AssessmentOptions
     public int ProfilerTimeoutSeconds { get; set; } = 20;
 
     [Range(1, int.MaxValue)]
+    public int RouterTimeoutSeconds { get; set; } = 4;
+
+    [Range(1, int.MaxValue)]
     public int MetricTimeoutSeconds { get; set; } = 140;
 
     [Range(1, int.MaxValue)]

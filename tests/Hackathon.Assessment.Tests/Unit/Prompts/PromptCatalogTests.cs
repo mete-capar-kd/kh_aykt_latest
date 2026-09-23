@@ -123,6 +123,13 @@ public sealed partial class PromptCatalogTests
         Assert.InRange(catalog.ProfilerSystemPrompt.Length, 1, 2500);
         Assert.InRange(catalog.EvaluatorSystemPrompt.Length, 1, 5000);
         Assert.Contains("Report Synthesizer", catalog.SynthesizerSystemPrompt);
+        Assert.InRange(catalog.RouterSourcePrompt.Length, 1, 2500);
+        Assert.InRange(
+            File.ReadAllText(Path.Combine(PromptRoot, "system", "synthesizer.md")).Length,
+            1,
+            4000);
+        Assert.Contains("Safety Policy", catalog.RouterSystemPrompt, StringComparison.Ordinal);
+        Assert.Contains("Safety Policy", catalog.SynthesizerSystemPrompt, StringComparison.Ordinal);
     }
 
     [Fact]
