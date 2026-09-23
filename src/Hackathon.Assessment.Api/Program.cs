@@ -8,6 +8,7 @@ using Hackathon.Assessment.Api.Middleware;
 using Hackathon.Assessment.Api.Options;
 using Hackathon.Assessment.Api.Orchestration;
 using Hackathon.Assessment.Api.Safety;
+using Hackathon.Assessment.Api.Scanners;
 using Hackathon.Assessment.Api.Snapshot;
 using Hackathon.Assessment.Api.Tools;
 using Microsoft.AspNetCore.Http.Json;
@@ -41,7 +42,10 @@ builder.Services.AddHttpClient("github")
 builder.Services.AddSingleton<IRepositorySnapshotProvider, GitHubRepositorySnapshotProvider>();
 builder.Services.AddSingleton<ISecretMasker, SecretMasker>();
 builder.Services.AddSingleton<GlobMatcher>();
-builder.Services.AddSingleton<IScannerRunner, EmptyScannerRunner>();
+builder.Services.AddSingleton<IScannerRegistry>(services =>
+    new ScannerRegistry(BuiltInScanners.Create(services.GetRequiredService<ISecretMasker>())));
+builder.Services.AddSingleton<IScannerRunner>(services =>
+    services.GetRequiredService<IScannerRegistry>());
 builder.Services.AddSingleton<RecordFindingValidator>();
 builder.Services.AddSingleton<IReadOnlyRepositoryTool, GetRepoManifestTool>();
 builder.Services.AddSingleton<IReadOnlyRepositoryTool, ListFilesTool>();

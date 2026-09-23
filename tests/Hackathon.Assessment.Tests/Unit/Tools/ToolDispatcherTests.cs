@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Hackathon.Assessment.Api.Domain;
 using Hackathon.Assessment.Api.Masking;
+using Hackathon.Assessment.Api.Scanners;
 using Hackathon.Assessment.Api.Tools;
 using Hackathon.Assessment.Tests.Unit.Snapshot;
 using Xunit;
@@ -103,7 +104,7 @@ public sealed class ToolDispatcherTests
     }
 
     [Fact]
-    public async Task ScannerIsExplicitlyEmptyUntilP05()
+    public async Task ScannerReturnsOnlyCandidatesForRequestedMetric()
     {
         var ctx = new ToolContext(SnapshotTestData.Create(("a.txt", "foo")),
             new EvidenceLedger(), MetricId.M01);
@@ -112,6 +113,24 @@ public sealed class ToolDispatcherTests
         using var json = JsonDocument.Parse(result.Content);
         Assert.True(result.Succeeded);
         Assert.Equal(0, json.RootElement.GetProperty("total").GetInt32());
+    }
+
+    [Fact]
+    public async Task RunScannerToolReturnsOnlyRequestedMetricCandidates()
+    {
+        var snapshot = SnapshotTestData.Create(("Dockerfile", "FROM node\n"));
+        var ctx = new ToolContext(snapshot, new EvidenceLedger(), MetricId.M01);
+        var result = await Dispatch(CreateDispatcher(), "run_scanner",
+            """{"metric_id":"m08"}""", ctx);
+        using var json = JsonDocument.Parse(result.Content);
+
+        Assert.True(result.Succeeded);
+        Assert.NotEmpty(json.RootElement.GetProperty("candidates").EnumerateArray());
+        Assert.All(json.RootElement.GetProperty("candidates").EnumerateArray(), candidate =>
+            Assert.Contains("m08", candidate.GetProperty("metricIds").EnumerateArray()
+                .Select(metric => metric.GetString())));
+        Assert.True(json.RootElement.TryGetProperty("truncated", out _));
+        Assert.True(json.RootElement.TryGetProperty("total", out _));
     }
 
     [Fact]
@@ -167,7 +186,9 @@ public sealed class ToolDispatcherTests
             new ListFilesTool(globs, masker),
             new SearchCodeTool(globs, masker, TimeProvider.System),
             new ReadFileTool(masker),
-            new RunScannerTool(new EmptyScannerRunner(), masker),
+            new RunScannerTool(
+                new ScannerRegistry(BuiltInScanners.Create(masker)),
+                masker),
             new RecordFindingTool(new RecordFindingValidator(masker))
         ]);
     }

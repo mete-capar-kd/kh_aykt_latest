@@ -31,14 +31,13 @@ public interface IToolDispatcher
 
 public interface IScannerRunner
 {
-    ImmutableArray<CandidateFinding> Run(MetricId metricId, RepositorySnapshot snapshot);
+    ScannerRunResult Run(MetricId metricId, RepositorySnapshot snapshot);
 }
 
-public sealed class EmptyScannerRunner : IScannerRunner
-{
-    public ImmutableArray<CandidateFinding> Run(MetricId metricId, RepositorySnapshot snapshot) =>
-        ImmutableArray<CandidateFinding>.Empty;
-}
+public sealed record ScannerRunResult(
+    ImmutableArray<CandidateFinding> Candidates,
+    bool Truncated,
+    int Total);
 
 public interface IReadOnlyRepositoryTool
 {
