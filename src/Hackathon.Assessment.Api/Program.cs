@@ -35,10 +35,19 @@ builder.Services.AddEntraIdAuthentication(builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ApplicationUptime>();
 builder.Services.AddSingleton<SafetyMetrics>();
+builder.Services.AddSingleton<SafetyCanary>();
 builder.Services.AddSingleton<IInputGuard, InputGuard>();
-builder.Services.AddSingleton<IAskOrchestrator, AskOrchestrator>();
-builder.Services.AddSingleton(_ =>
-    new PromptCatalog(Path.Combine(AppContext.BaseDirectory, "prompts")));
+builder.Services.AddSingleton<AskOrchestrator>();
+builder.Services.AddSingleton<IAskOrchestrator>(services =>
+    services.GetRequiredService<AskOrchestrator>());
+builder.Services.AddHostedService<CacheWarmupHostedService>();
+builder.Services.AddSingleton(services =>
+    new PromptCatalog(
+        Path.Combine(AppContext.BaseDirectory, "prompts"),
+        services.GetRequiredService<SafetyCanary>()));
+builder.Services.AddSingleton<AskRouterAgent>();
+builder.Services.AddSingleton<RefusalBuilder>();
+builder.Services.AddSingleton<OutputGuard>();
 builder.Services.AddSingleton<ProfilerAgent>();
 builder.Services.AddSingleton<MetricEvaluator>();
 builder.Services.AddSingleton<SynthesizerAgent>();

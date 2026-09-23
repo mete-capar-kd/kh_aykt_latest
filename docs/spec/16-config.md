@@ -33,6 +33,7 @@ Kaynak: [A20], [A23] — bu dosya bağlayıcı spec'tir.
 | `Repository__GitHubToken` | yok (opsiyonel, salt-okunur) | **Evet** | P04 |
 | `Assessment__MaxFiles` | `2000` | Hayır | P03, P04 |
 | `Assessment__MaxTotalBytes` | `52428800` | Hayır | P03, P04 |
+| `Assessment__RouterTimeoutSeconds` | `4` | Hayır | P09 |
 | `Assessment__ProfilerTimeoutSeconds` | `20` | Hayır | P07 |
 | `Assessment__MetricTimeoutSeconds` | `140` | Hayır | P07 |
 | `Assessment__SynthesizerTimeoutSeconds` | `40` | Hayır | P08 |
@@ -41,6 +42,7 @@ Kaynak: [A20], [A23] — bu dosya bağlayıcı spec'tir.
 | `Cache__MetricResultTtlMinutes` | `120` | Hayır | P07 |
 | `Cache__MetricResultMaxEntries` | `1000` | Hayır | P07 |
 | `Cache__SnapshotMaxBytes` | `536870912` | Hayır | P07 |
+| `Cache__WarmupOnStartup` | `true` (`Testing` ortamında `false`) | Hayır | P09 |
 | `RateLimit__PermitsPerMinute` | `300` | Hayır | P03 |
 | `RateLimit__QueueLimit` | `100` | Hayır | P03 |
 | `RateLimit__ExemptClientIds__0` | boş | Hayır | P03 |

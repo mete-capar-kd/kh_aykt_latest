@@ -21,6 +21,8 @@ public sealed class MetricResultCache : IDisposable
     private readonly ConcurrentDictionary<MetricResultCacheKey, Task<EvaluationOutcome>> _inFlight = new();
     private readonly TimeSpan _ttl;
     private readonly TimeSpan _metricDeadline;
+    private readonly object _warmupLock = new();
+    private HashSet<MetricResultCacheKey> _warmEntries = [];
 
     public MetricResultCache(MetricResultCacheOptions? options = null)
     {
@@ -80,6 +82,53 @@ public sealed class MetricResultCache : IDisposable
         }
 
         return await sharedTask.WaitAsync(callerToken).ConfigureAwait(false);
+    }
+
+    public void PinWarmupCommit(
+        string repositoryUrl,
+        string commitSha,
+        string promptVersion)
+    {
+        var current = MetricNames.All
+            .Select(metric => CreateKey(repositoryUrl, commitSha, metric, promptVersion))
+            .ToHashSet();
+        lock (_warmupLock)
+        {
+            foreach (var previous in _warmEntries.Except(current))
+            {
+                if (_completed.TryGetValue(previous, out EvaluationOutcome? outcome)
+                    && outcome is not null)
+                {
+                    _completed.Set(
+                        previous,
+                        outcome,
+                        new MemoryCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = _ttl,
+                            Priority = CacheItemPriority.Normal,
+                            Size = 1
+                        });
+                }
+            }
+
+            foreach (var key in current)
+            {
+                if (_completed.TryGetValue(key, out EvaluationOutcome? outcome)
+                    && outcome is not null)
+                {
+                    _completed.Set(
+                        key,
+                        outcome,
+                        new MemoryCacheEntryOptions
+                        {
+                            Priority = CacheItemPriority.NeverRemove,
+                            Size = 1
+                        });
+                }
+            }
+
+            _warmEntries = current;
+        }
     }
 
     public bool IsCached(

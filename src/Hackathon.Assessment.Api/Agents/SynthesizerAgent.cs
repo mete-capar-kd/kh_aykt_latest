@@ -109,6 +109,10 @@ public sealed class SynthesizerAgent(
         {
             return Fallback(normalizedLanguage);
         }
+        catch (ContentFilteredException)
+        {
+            throw;
+        }
         catch (GatewayException)
         {
             return Fallback(normalizedLanguage);
@@ -247,34 +251,6 @@ public sealed class SynthesizerAgent(
             + "</assessment_data>");
     }
 
-    private string RemoveUnknownReferences(
-        string value,
-        ImmutableArray<AllowedEvidence> allowedEvidence) =>
-        TextReference.Replace(value, match =>
-        {
-            var startText = match.Groups["line"].Success
-                ? match.Groups["line"].Value
-                : match.Groups["start"].Value;
-            var endText = match.Groups["line"].Success
-                ? startText
-                : match.Groups["end"].Value;
-            if (!int.TryParse(startText, out var start)
-                || !int.TryParse(endText, out var end))
-            {
-                safetyMetrics.UnverifiedReferenceRemoved();
-                return "";
-            }
-
-            if (MatchAllowedEvidence(match.Groups["path"].Value, start, end, allowedEvidence)
-                is not null)
-            {
-                return match.Value;
-            }
-
-            safetyMetrics.UnverifiedReferenceRemoved();
-            return "";
-        });
-
     private static ImmutableArray<AllowedEvidence> BuildAllowedEvidence(AssessmentReport report)
     {
         var evidence = ImmutableArray.CreateBuilder<AllowedEvidence>();
@@ -314,6 +290,32 @@ public sealed class SynthesizerAgent(
 
         return evidence.ToImmutable();
     }
+
+    private string RemoveUnknownReferences(
+        string value,
+        ImmutableArray<AllowedEvidence> allowedEvidence) =>
+        TextReference.Replace(value, match =>
+        {
+            var startText = match.Groups["line"].Success
+                ? match.Groups["line"].Value
+                : match.Groups["start"].Value;
+            var endText = match.Groups["line"].Success
+                ? startText
+                : match.Groups["end"].Value;
+            if (!int.TryParse(startText, out var start)
+                || !int.TryParse(endText, out var end)
+                || MatchAllowedEvidence(
+                    match.Groups["path"].Value,
+                    start,
+                    end,
+                    allowedEvidence) is null)
+            {
+                safetyMetrics.UnverifiedReferenceRemoved();
+                return "";
+            }
+
+            return match.Value;
+        });
 
     private static AllowedEvidence? MatchAllowedEvidence(
         string file,
