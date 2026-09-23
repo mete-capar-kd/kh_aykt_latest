@@ -20,6 +20,8 @@ public sealed class RepositoryOptions
     [MinLength(1)]
     public string[] AllowedDownloadHosts { get; set; } =
         ["api.github.com", "codeload.github.com"];
+
+    public string? GitHubToken { get; set; }
 }
 
 public sealed class OrganizationPlaceholderValidator(

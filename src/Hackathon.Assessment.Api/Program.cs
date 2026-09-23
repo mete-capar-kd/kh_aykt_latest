@@ -3,10 +3,13 @@ using System.Text.Unicode;
 using Hackathon.Assessment.Api.Contracts;
 using Hackathon.Assessment.Api.Endpoints;
 using Hackathon.Assessment.Api.Health;
+using Hackathon.Assessment.Api.Masking;
 using Hackathon.Assessment.Api.Middleware;
 using Hackathon.Assessment.Api.Options;
 using Hackathon.Assessment.Api.Orchestration;
 using Hackathon.Assessment.Api.Safety;
+using Hackathon.Assessment.Api.Snapshot;
+using Hackathon.Assessment.Api.Tools;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 
@@ -26,6 +29,27 @@ builder.Services.AddSingleton<ApplicationUptime>();
 builder.Services.AddSingleton<IInputGuard, InputGuard>();
 builder.Services.AddSingleton<IAskOrchestrator, StubAskOrchestrator>();
 builder.Services.AddScoped<AskEndpoints.AskRequestValidationFilter>();
+builder.Services.AddHttpClient("github")
+    .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AllowAutoRedirect = false,
+        AutomaticDecompression = System.Net.DecompressionMethods.None,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+        ConnectCallback = IpAddressPolicy.ConnectAsync
+    });
+builder.Services.AddSingleton<IRepositorySnapshotProvider, GitHubRepositorySnapshotProvider>();
+builder.Services.AddSingleton<ISecretMasker, SecretMasker>();
+builder.Services.AddSingleton<GlobMatcher>();
+builder.Services.AddSingleton<IScannerRunner, EmptyScannerRunner>();
+builder.Services.AddSingleton<RecordFindingValidator>();
+builder.Services.AddSingleton<IReadOnlyRepositoryTool, GetRepoManifestTool>();
+builder.Services.AddSingleton<IReadOnlyRepositoryTool, ListFilesTool>();
+builder.Services.AddSingleton<IReadOnlyRepositoryTool, SearchCodeTool>();
+builder.Services.AddSingleton<IReadOnlyRepositoryTool, ReadFileTool>();
+builder.Services.AddSingleton<IReadOnlyRepositoryTool, RunScannerTool>();
+builder.Services.AddSingleton<IReadOnlyRepositoryTool, RecordFindingTool>();
+builder.Services.AddSingleton<IToolDispatcher, ToolDispatcher>();
 
 builder.Services.AddOptions<AssessmentOptions>()
     .BindConfiguration("Assessment")

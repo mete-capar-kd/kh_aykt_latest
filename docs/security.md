@@ -11,12 +11,12 @@ lisansı/erişimi doğrulanmalıdır; aksi halde repository'yi public yapmak vey
 kurumun GHAS yetkisini açtırmak gerekir. Bu değişikliklere yalnız yetkili
 insan karar verir.
 
-`.github/workflows/codeql.yml` tek CodeQL workflow'udur. Settings'de CodeQL
-Default setup açıksa mükerrer bulgu oluşmaması için insan tarafından
-kapatılır; Advanced setup workflow'u korunur. CodeQL veya dependency review
-upload'ı lisans/dependency graph ayarı yüzünden başarısızsa workflow
-silinmez, `if:` ile atlanmaz veya sadece `main`'e indirilmez: durum PR'da
-**external blocker** olarak raporlanır.
+P04'te kullanıcı talebiyle `.github/workflows/codeql.yml` kaldırıldı: Code
+scanning bu repository'de etkin olmadığı için CodeQL analizi sonuçlarını
+yükleyemiyordu. Otomatik CodeQL taraması şu anda **yoktur**; yeniden etkinleştirme
+için kurumun lisans/ayarlarını doğrulaması ve insan onayıyla workflow'u geri
+getirmesi gerekir. `dependency-review` workflow'u korunur; Dependency graph/GHAS
+etkin değilken verdiği hata PR'da **external blocker** olarak raporlanır.
 
 PR onayından önce Critical/High başta olmak üzere tüm açık CodeQL, secret
 scanning ve dependency review bulguları incelenir. Dismiss ancak teknik
@@ -25,7 +25,7 @@ bulguyu ikinci CodeQL workflow'u ile çoğaltmayın. Gerçek secret, token,
 connection string, sertifika private key veya kişisel veri commit edilmez;
 lokal `.env`/user-secrets ve Azure App Settings/Key Vault kullanılır.
 
-Bu aşamadaki workflow action'ları SHA yerine major sürüm etiketiyle
-(`actions/*@v4`, `github/codeql-action/*@v3`) kullanılır; SHA araştırmasının
+Bu aşamadaki etkin workflow action'ları SHA yerine major sürüm etiketiyle
+(`actions/*@v4`) kullanılır; SHA araştırmasının
 maliyeti bilinçli olarak ertelenmiştir. Bu karar değerlendirici m07
 scanner'ında potansiyel bulgu olabilir; güvenlik onayının yerini almaz.
