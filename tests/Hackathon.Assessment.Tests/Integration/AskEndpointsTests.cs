@@ -1,17 +1,23 @@
 using System.Collections.Immutable;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Hackathon.Assessment.Api.Auth;
 using Hackathon.Assessment.Api.Contracts;
 using Hackathon.Assessment.Api.Domain;
 using Hackathon.Assessment.Api.Orchestration;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using NSubstitute;
 using Xunit;
 
@@ -23,7 +29,7 @@ public sealed class AskEndpointsTests
     public async Task ValidRequestReturnsStubWithOrderedMetricsAndCorrelationId()
     {
         using var factory = new AssessmentApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         client.DefaultRequestHeaders.Add("X-Correlation-Id", "assessment-123");
 
         using var response = await client.PostAsJsonAsync("/api/ask", new
@@ -57,7 +63,7 @@ public sealed class AskEndpointsTests
     public async Task QuestionLengthBoundariesAreEnforced(int length, HttpStatusCode expectedStatus)
     {
         using var factory = new AssessmentApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         using var response = await PostJsonAsync(
             client,
             JsonSerializer.Serialize(new { question = new string('q', length) }));
@@ -75,7 +81,7 @@ public sealed class AskEndpointsTests
             return EmptyResponse(context.CorrelationId);
         });
         using var factory = new AssessmentApiFactory(orchestrator);
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         using var response = await PostJsonAsync(
             client,
@@ -103,7 +109,7 @@ public sealed class AskEndpointsTests
                 return Task.FromResult(EmptyResponse(call.Arg<AskContext>().CorrelationId));
             });
         using var factory = new AssessmentApiFactory(orchestrator);
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         var body = JsonSerializer.Serialize(new
         {
             question = "valid question",
@@ -125,7 +131,7 @@ public sealed class AskEndpointsTests
     public async Task InvalidCorrelationIdIsReplacedWithGuidN()
     {
         using var factory = new AssessmentApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         client.DefaultRequestHeaders.Add("X-Correlation-Id", "contains spaces");
 
         using var response = await PostJsonAsync(client, """{"question":"valid question"}""");
@@ -196,7 +202,7 @@ public sealed class AskEndpointsTests
                 assessment);
         });
         using var factory = new AssessmentApiFactory(orchestrator);
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         using var response = await PostJsonAsync(client, """{"question":"valid question"}""");
         var rawJson = await response.Content.ReadAsStringAsync();
@@ -252,7 +258,7 @@ public sealed class AskEndpointsTests
             $"https://github.com/org/{new string('r', 101)}"
         ];
         using var factory = new AssessmentApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         foreach (var url in invalidUrls)
         {
@@ -274,7 +280,7 @@ public sealed class AskEndpointsTests
     public async Task ValidRepositoryUrlAllowsGitSuffixOrTrailingSlash()
     {
         using var factory = new AssessmentApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         var urls = new[]
         {
@@ -296,7 +302,7 @@ public sealed class AskEndpointsTests
     public async Task InvalidReferencesAndMetricSelectionsReturnValidationProblem()
     {
         using var factory = new AssessmentApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         var invalidRequests = new[]
         {
             JsonSerializer.Serialize(new { question = "valid question", @ref = ".." }),
@@ -322,7 +328,7 @@ public sealed class AskEndpointsTests
     public async Task EmptyAndMalformedJsonReturn400ValidationProblem()
     {
         using var factory = new AssessmentApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         using var missingQuestion = await PostJsonAsync(client, "{}");
         using var malformedJson = await PostJsonAsync(client, "{");
@@ -341,7 +347,7 @@ public sealed class AskEndpointsTests
     public async Task OversizedRequestReturns413ProblemDetails()
     {
         using var factory = new AssessmentApiFactory();
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
         var body = JsonSerializer.Serialize(new { question = new string('q', 33 * 1024) });
 
         using var response = await PostJsonAsync(client, body);
@@ -377,7 +383,7 @@ public sealed class AskEndpointsTests
                 Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromException<AskResponse>(exception));
         using var factory = new AssessmentApiFactory(orchestrator);
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         using var response = await PostJsonAsync(client, """{"question":"valid question"}""");
         var rawBody = await response.Content.ReadAsStringAsync();
@@ -437,30 +443,39 @@ public sealed class AskEndpointsTests
 internal sealed class AssessmentApiFactory : WebApplicationFactory<Program>
 {
     private readonly string _environment;
-    private readonly IReadOnlyDictionary<string, string?> _settings;
-    private readonly Action<IServiceCollection>? _configureServices;
+    private readonly IReadOnlyDictionary<string, string?>? _settings;
+    private readonly Action<IServiceCollection> _configureServices;
+    private readonly Action<ILoggingBuilder>? _configureLogging;
 
     public AssessmentApiFactory(
         IAskOrchestrator? orchestrator = null,
         string environment = "Testing",
-        IReadOnlyDictionary<string, string?>? settings = null)
+        IReadOnlyDictionary<string, string?>? settings = null,
+        Action<IServiceCollection>? configureServices = null,
+        Action<ILoggingBuilder>? configureLogging = null)
     {
         _environment = environment;
-        _settings = settings ?? DefaultTestSettings;
-        if (orchestrator is not null)
+        _settings = settings;
+        _configureLogging = configureLogging;
+        _configureServices = services =>
         {
-            _configureServices = services =>
+            if (orchestrator is not null)
             {
                 services.RemoveAll<IAskOrchestrator>();
                 services.AddSingleton(orchestrator);
-            };
-        }
+            }
+
+            configureServices?.Invoke(services);
+        };
     }
 
     private static IReadOnlyDictionary<string, string?> DefaultTestSettings { get; } =
         new Dictionary<string, string?>
         {
-            ["Repository:DefaultUrl"] = "https://github.com/org/repo"
+            ["Repository:DefaultUrl"] = "https://github.com/org/repo",
+            ["EntraId:Instance"] = TestJwt.Instance,
+            ["EntraId:TenantId"] = TestJwt.TenantId,
+            ["EntraId:Audience"] = TestJwt.Audience
         };
 
     public static IReadOnlyDictionary<string, string?> ProductionSettings { get; } =
@@ -473,19 +488,49 @@ internal sealed class AssessmentApiFactory : WebApplicationFactory<Program>
             ["Apim:Auth:Scope"] = "api://assessment.example.test/.default",
             ["Apim:Deployments:Cheap"] = "test-cheap",
             ["Apim:Deployments:Strong"] = "test-strong",
-            ["EntraId:TenantId"] = "tenant.example.test",
-            ["EntraId:Audience"] = "api://assessment.example.test",
+            ["EntraId:Instance"] = TestJwt.Instance,
+            ["EntraId:TenantId"] = TestJwt.TenantId,
+            ["EntraId:Audience"] = TestJwt.Audience,
             ["Telemetry:Team"] = "assessment-test-team"
         };
+
+    public HttpClient CreateAuthenticatedClient(string? token = null)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            JwtBearerDefaults.AuthenticationScheme,
+            token ?? TestJwt.CreateToken());
+        return client;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(_environment);
         builder.ConfigureAppConfiguration((_, configuration) =>
-            configuration.AddInMemoryCollection(_settings));
-        if (_configureServices is not null)
         {
-            builder.ConfigureTestServices(_configureServices);
-        }
+            configuration.AddInMemoryCollection(DefaultTestSettings);
+            if (_settings is not null)
+            {
+                configuration.AddInMemoryCollection(_settings);
+            }
+        });
+        builder.ConfigureLogging(logging => _configureLogging?.Invoke(logging));
+        builder.ConfigureTestServices(services =>
+        {
+            services.PostConfigure<JwtBearerOptions>(
+                JwtBearerDefaults.AuthenticationScheme,
+                options =>
+                {
+                    var testConfiguration = new OpenIdConnectConfiguration
+                    {
+                        Issuer = TestJwt.V2Issuer
+                    };
+                    testConfiguration.SigningKeys.Add(TestJwt.SigningKey);
+                    options.Configuration = testConfiguration;
+                    options.ConfigurationManager =
+                        new StaticConfigurationManager<OpenIdConnectConfiguration>(testConfiguration);
+                });
+            _configureServices(services);
+        });
     }
 }

@@ -72,8 +72,8 @@ Hata yanıtları `application/problem+json` biçiminde `type`, `title`, `status`
 | HTTP | Anlamı |
 |---|---|
 | 400 | JSON veya request validation hatası |
-| 401 | Kimlik yok/geçersiz (Entra auth P10 kapsamıdır) |
-| 403 | Yetki yok (Entra auth P10 kapsamıdır) |
+| 401 | Kimlik yok/geçersiz; ayrıntılar için [SSO davranışı](sso.md#http-error-behavior) |
+| 403 | Yetki yok; ayrıntılar için [SSO davranışı](sso.md#http-error-behavior) |
 | 413 | Request body 32 KB sınırını aştı |
 | 422 | Repository erişimi veya snapshot limiti hatası |
 | 429 | Kimlik başına rate limit; `Retry-After` içerir |

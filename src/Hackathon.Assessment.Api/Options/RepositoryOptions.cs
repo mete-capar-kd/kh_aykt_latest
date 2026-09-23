@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Hackathon.Assessment.Api.Auth;
 using Microsoft.Extensions.Options;
 
 namespace Hackathon.Assessment.Api.Options;
@@ -26,11 +27,14 @@ public sealed class RepositoryOptions
 
 public sealed class OrganizationPlaceholderValidator(
     IConfiguration configuration,
-    IHostEnvironment environment) : IValidateOptions<RepositoryOptions>
+    IHostEnvironment environment) :
+    IValidateOptions<RepositoryOptions>,
+    IValidateOptions<EntraIdOptions>
 {
-    private const string Placeholder = "<ORGANİZASYONDAN-ALINACAK>";
-
     public ValidateOptionsResult Validate(string? name, RepositoryOptions options)
+        => ValidateConfiguration();
+
+    public ValidateOptionsResult Validate(string? name, EntraIdOptions options)
     {
         if (!environment.IsProduction())
         {
@@ -39,15 +43,59 @@ public sealed class OrganizationPlaceholderValidator(
 
         var missingKeys = configuration
             .AsEnumerable()
-            .Where(pair => string.Equals(pair.Value, Placeholder, StringComparison.Ordinal))
+            .Where(pair => string.Equals(
+                pair.Value,
+                EntraIdOptions.OrganizationPlaceholder,
+                StringComparison.Ordinal))
             .Select(pair => pair.Key)
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
+            .ToHashSet(StringComparer.Ordinal);
 
-        return missingKeys.Length == 0
+        if (string.Equals(
+            options.TenantId,
+            EntraIdOptions.OrganizationPlaceholder,
+            StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(options.TenantId))
+        {
+            missingKeys.Add($"{EntraIdOptions.SectionName}:TenantId");
+        }
+
+        if (string.Equals(
+            options.Audience,
+            EntraIdOptions.OrganizationPlaceholder,
+            StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(options.Audience))
+        {
+            missingKeys.Add($"{EntraIdOptions.SectionName}:Audience");
+        }
+
+        return ToValidationResult(missingKeys);
+    }
+
+    private ValidateOptionsResult ValidateConfiguration()
+    {
+        if (!environment.IsProduction())
+        {
+            return ValidateOptionsResult.Success;
+        }
+
+        var missingKeys = configuration
+            .AsEnumerable()
+            .Where(pair => string.Equals(
+                pair.Value,
+                EntraIdOptions.OrganizationPlaceholder,
+                StringComparison.Ordinal))
+            .Select(pair => pair.Key)
+            .ToHashSet(StringComparer.Ordinal);
+        return ToValidationResult(missingKeys);
+    }
+
+    private static ValidateOptionsResult ToValidationResult(HashSet<string> missingKeys)
+    {
+        return missingKeys.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(
-                missingKeys.Select(key => $"Configuration key '{key}' must be configured."));
+                missingKeys
+                    .Order(StringComparer.Ordinal)
+                    .Select(key => $"Configuration key '{key}' must be configured."));
     }
 }

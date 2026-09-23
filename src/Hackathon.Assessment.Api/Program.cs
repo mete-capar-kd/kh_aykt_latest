@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
+using Hackathon.Assessment.Api.Auth;
 using Hackathon.Assessment.Api.Contracts;
 using Hackathon.Assessment.Api.Endpoints;
 using Hackathon.Assessment.Api.Health;
@@ -25,6 +26,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddEntraIdAuthentication(builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ApplicationUptime>();
 builder.Services.AddSingleton<IInputGuard, InputGuard>();
@@ -68,15 +70,18 @@ builder.Services.AddOptions<RateLimitOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<RepositoryOptions>, OrganizationPlaceholderValidator>();
+builder.Services.AddSingleton<IValidateOptions<EntraIdOptions>, OrganizationPlaceholderValidator>();
 builder.Services.AddAskRateLimiter();
 
 var app = builder.Build();
 
 _ = app.Services.GetRequiredService<IInputGuard>();
 
-app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseExceptionHandler();
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseRateLimiter();
 app.UseMiddleware<RequestBodyLimitMiddleware>();
 app.MapAskEndpoint();

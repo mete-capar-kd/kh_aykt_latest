@@ -106,6 +106,7 @@ public sealed class RepositoryHygieneTests
         var expectedPackageIds = new[]
         {
             "coverlet.collector",
+            "Microsoft.AspNetCore.Authentication.JwtBearer",
             "Microsoft.AspNetCore.Mvc.Testing",
             "Microsoft.NET.Test.Sdk",
             "NetArchTest.Rules",
