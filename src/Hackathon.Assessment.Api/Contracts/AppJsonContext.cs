@@ -13,6 +13,10 @@ namespace Hackathon.Assessment.Api.Contracts;
 [JsonSerializable(typeof(ProblemDetails))]
 [JsonSerializable(typeof(ValidationProblemDetails))]
 [JsonSerializable(typeof(OpenAiToolDefinition[]))]
+[JsonSerializable(typeof(ChatRequest))]
+[JsonSerializable(typeof(ChatResponse))]
+[JsonSerializable(typeof(OpenAiChatRequest))]
+[JsonSerializable(typeof(OpenAiChatResponse))]
 public partial class AppJsonContext : JsonSerializerContext
 {
 }

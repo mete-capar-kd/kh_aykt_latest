@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Hackathon.Assessment.Api.Telemetry;
 
 namespace Hackathon.Assessment.Api.Safety;
 
@@ -15,9 +16,11 @@ public sealed class InputGuard : IInputGuard
 {
     private readonly string[] _literalPatterns;
     private readonly Regex[] _regexPatterns;
+    private readonly SafetyMetrics? _safetyMetrics;
 
-    public InputGuard()
+    public InputGuard(SafetyMetrics? safetyMetrics = null)
     {
+        _safetyMetrics = safetyMetrics;
         var patternPath = Path.Combine(
             AppContext.BaseDirectory, "prompts", "guard", "injection-patterns.txt");
         var lines = File.ReadAllLines(patternPath)
@@ -68,6 +71,10 @@ public sealed class InputGuard : IInputGuard
         var suspectedInjection = _literalPatterns.Any(pattern =>
                 lowerQuestion.Contains(pattern, StringComparison.Ordinal))
             || _regexPatterns.Any(pattern => pattern.IsMatch(lowerQuestion));
+        if (suspectedInjection)
+        {
+            _safetyMetrics?.InjectionSuspected();
+        }
 
         return new InputGuardResult(normalized, suspectedInjection);
     }

@@ -483,8 +483,12 @@ internal sealed class AssessmentApiFactory : WebApplicationFactory<Program>
         {
             ["Repository:DefaultUrl"] = "https://github.com/org/repo",
             ["Apim:BaseUrl"] = "https://apim.example.test",
+            ["Apim:RouteStyle"] = "AzureDeployments",
+            ["Apim:ApiVersion"] = "2025-01-01",
+            ["Apim:CacheStatusHeader"] = "",
             ["Apim:Auth:Scheme"] = "SubscriptionKey",
             ["Apim:Auth:HeaderName"] = "X-Test-Key",
+            ["Apim:Auth:Key"] = string.Concat("synthetic", "-", "test", "-", "key"),
             ["Apim:Auth:Scope"] = "api://assessment.example.test/.default",
             ["Apim:Deployments:Cheap"] = "test-cheap",
             ["Apim:Deployments:Strong"] = "test-strong",

@@ -9,6 +9,9 @@ Kaynak: [A20], [A23] — bu dosya bağlayıcı spec'tir.
 |---|---|---|---|
 | `APP_VERSION` | `0.0.0-local` (CD'de sürüm) | Hayır | P03, P11 |
 | `GIT_COMMIT_SHA` | `local` (CD'de commit SHA) | Hayır | P03, P11 |
+| `Apim__RouteStyle` | `<ORGANİZASYONDAN-ALINACAK>` (`AzureDeployments` / `OpenAIv1`) | Hayır | P06 |
+| `Apim__ApiVersion` | `<ORGANİZASYONDAN-ALINACAK>` (AzureDeployments route için) | Hayır | P06 |
+| `Apim__CacheStatusHeader` | boş (yalnız Gateway header adı doğrulanırsa) | Hayır | P06 |
 | `Apim__BaseUrl` | `<ORGANİZASYONDAN-ALINACAK>` | Hayır | P06 |
 | `Apim__Auth__Scheme` | `<ORGANİZASYONDAN-ALINACAK>` (ör. SubscriptionKey / ManagedIdentity / OAuth) | Hayır | P06 |
 | `Apim__Auth__HeaderName` | `<ORGANİZASYONDAN-ALINACAK>` | Hayır | P06 |
@@ -44,6 +47,7 @@ Kaynak: [A20], [A23] — bu dosya bağlayıcı spec'tir.
 | `Safety__CanaryToken` | yok (yoksa açılışta rastgele) | **Evet** | P09 |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | yok | **Evet** | P06 |
 | `Telemetry__Team` / `Telemetry__Application` / `Telemetry__Environment` | `<ORGANİZASYONDAN-ALINACAK>` / `hackathon-assessment-api` / `local` | Hayır | P06 |
+| `Telemetry__SamplingRatio` | `1.0` | Hayır | P06 |
 
 - Secret olan anahtarların değeri **hiçbir dosyaya yazılmaz**. `appsettings.json`'da secret anahtarlar yer almaz; `.env.example`'da `=` sonrası boş bırakılır.
 - `appsettings.Development.json` yalnız secret olmayan lokal değerleri içerir ve commit edilir. Lokal secret'lar `dotnet user-secrets` veya git'e girmeyen `appsettings.Local.json` ile verilir.
