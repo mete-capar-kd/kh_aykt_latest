@@ -1,0 +1,263 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hackathon Assessment API",
+    "version": "0.0.0-local",
+    "description": "Repository assessment request and health contracts."
+  },
+  "paths": {
+    "/api/ask": {
+      "post": {
+        "operationId": "ask",
+        "summary": "Ask a question about a repository assessment.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AskRequest" },
+              "example": {
+                "question": "Bu repository SSO gereksinimlerini karşılıyor mu?",
+                "repositoryUrl": "https://github.com/org/repo",
+                "ref": "main",
+                "metrics": ["m02", "m03"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Assessment answer.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AskResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/Problem" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "502": { "$ref": "#/components/responses/Problem" },
+          "504": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Returns service health without external calls.",
+        "responses": {
+          "200": {
+            "description": "Service health.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AskRequest": {
+        "type": "object",
+        "required": ["question"],
+        "properties": {
+          "question": { "type": "string", "minLength": 3, "maxLength": 2000 },
+          "repositoryUrl": { "type": "string", "format": "uri", "description": "HTTPS URL for an allowed host and /{owner}/{repo} path." },
+          "ref": { "type": "string", "maxLength": 200 },
+          "metrics": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "#/components/schemas/MetricId" }
+          }
+        }
+      },
+      "AskResponse": {
+        "type": "object",
+        "required": ["answer", "answerType", "promptVersion", "evidence", "correlationId", "assessment"],
+        "properties": {
+          "answer": { "type": "string" },
+          "answerType": { "$ref": "#/components/schemas/AnswerType" },
+          "promptVersion": { "type": "string" },
+          "evidence": { "type": "array", "items": { "$ref": "#/components/schemas/EvidenceReference" } },
+          "correlationId": { "type": "string" },
+          "assessment": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/AssessmentReport" },
+              { "type": "null" }
+            ]
+          }
+        }
+      },
+      "AnswerType": {
+        "type": "string",
+        "enum": ["assessment", "repo_answer", "insufficient_evidence", "refusal"]
+      },
+      "MetricId": {
+        "type": "string",
+        "enum": ["m01", "m02", "m03", "m04", "m05", "m06", "m07", "m08", "m09", "m10"]
+      },
+      "MetricStatus": {
+        "type": "string",
+        "enum": ["Uyumlu", "Kısmen Uyumlu", "Uyumsuz", "Değerlendirilemedi"]
+      },
+      "Severity": {
+        "type": "string",
+        "enum": ["critical", "high", "medium", "low", "info"]
+      },
+      "Confidence": {
+        "type": "string",
+        "enum": ["kesin", "potansiyel"]
+      },
+      "Coverage": {
+        "type": "string",
+        "enum": ["complete", "partial", "none"]
+      },
+      "SubCheckStatus": {
+        "type": "string",
+        "enum": ["Karşılandı", "İhlal", "Kanıt yok", "Uygulanamaz"]
+      },
+      "EvidenceReference": {
+        "type": "object",
+        "required": ["file", "startLine", "endLine", "reason", "url"],
+        "properties": {
+          "file": { "type": "string" },
+          "startLine": { "type": "integer", "minimum": 1 },
+          "endLine": { "type": "integer", "minimum": 1 },
+          "reason": { "type": "string" },
+          "url": { "type": "string", "format": "uri" }
+        }
+      },
+      "MetricResult": {
+        "type": "object",
+        "required": ["metricId", "metricName", "status", "score", "subChecks", "findings"],
+        "properties": {
+          "metricId": { "$ref": "#/components/schemas/MetricId" },
+          "metricName": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/MetricStatus" },
+          "score": { "type": ["number", "null"] },
+          "rationale": { "type": "string" },
+          "risk": { "type": "string" },
+          "coverage": { "$ref": "#/components/schemas/Coverage" },
+          "subChecks": { "type": "array", "items": { "$ref": "#/components/schemas/SubCheckResult" } },
+          "findings": { "type": "array", "items": { "$ref": "#/components/schemas/Finding" } },
+          "notAssessableReason": { "type": ["string", "null"] },
+          "filesExamined": { "type": "integer", "minimum": 0 },
+          "toolCalls": { "type": "integer", "minimum": 0 },
+          "rejectedFindings": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "SubCheckResult": {
+        "type": "object",
+        "required": ["id", "status", "reason", "evidenceRefs"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/SubCheckStatus" },
+          "reason": { "type": "string" },
+          "evidenceRefs": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Finding": {
+        "type": "object",
+        "required": ["id", "title", "severity", "confidence", "standardRef", "rationale", "impact", "evidence", "recommendation"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "severity": { "$ref": "#/components/schemas/Severity" },
+          "confidence": { "$ref": "#/components/schemas/Confidence" },
+          "standardRef": { "type": "string" },
+          "rationale": { "type": "string" },
+          "impact": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/components/schemas/Evidence" }
+          },
+          "recommendation": { "type": "string" }
+        }
+      },
+      "Evidence": {
+        "type": "object",
+        "required": ["file", "startLine", "endLine", "snippet", "snippetSha256", "url"],
+        "properties": {
+          "file": { "type": "string" },
+          "startLine": { "type": "integer", "minimum": 1 },
+          "endLine": { "type": "integer", "minimum": 1 },
+          "snippet": { "type": "string" },
+          "snippetSha256": { "type": "string" },
+          "url": { "type": "string", "format": "uri" }
+        }
+      },
+      "AssessmentReport": {
+        "type": "object",
+        "required": ["jobId", "repositoryUrl", "ref", "commitSha", "metrics", "overallScore", "reportMarkdown", "generatedAt", "modelInfo"],
+        "properties": {
+          "jobId": { "type": "string" },
+          "repositoryUrl": { "type": "string", "format": "uri" },
+          "ref": { "type": "string" },
+          "commitSha": { "type": "string" },
+          "metrics": {
+            "type": "array",
+            "minItems": 10,
+            "maxItems": 10,
+            "items": { "$ref": "#/components/schemas/MetricResult" }
+          },
+          "overallScore": { "type": ["number", "null"] },
+          "reportMarkdown": { "type": "string" },
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "modelInfo": { "$ref": "#/components/schemas/ModelInfo" }
+        }
+      },
+      "ModelInfo": {
+        "type": "object",
+        "required": ["router", "profiler", "evaluator", "synthesizer", "promptVersion"],
+        "properties": {
+          "router": { "type": "string" },
+          "profiler": { "type": "string" },
+          "evaluator": { "type": "string" },
+          "synthesizer": { "type": "string" },
+          "promptVersion": { "type": "string" }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status", "version", "commitSha", "uptimeSeconds"],
+        "properties": {
+          "status": { "type": "string", "const": "Healthy" },
+          "version": { "type": "string" },
+          "commitSha": { "type": "string" },
+          "uptimeSeconds": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "Problem": {
+        "type": "object",
+        "required": ["type", "title", "status", "instance", "correlationId"],
+        "properties": {
+          "type": { "type": "string" },
+          "title": { "type": "string" },
+          "status": { "type": "integer" },
+          "instance": { "type": "string" },
+          "correlationId": { "type": "string" },
+          "errors": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } }
+        }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "ProblemDetails response with correlation id.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/Problem" }
+          }
+        }
+      }
+    }
+  }
+}
