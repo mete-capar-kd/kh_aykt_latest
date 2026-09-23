@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [development, main]
+  push:
+    branches: [development, main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore Hackathon.Assessment.slnx
+      - name: Build
+        run: dotnet build -warnaserror
+      - name: Test and collect coverage
+        run: dotnet test --filter "Category!=GatewayLive" --collect:"XPlat Code Coverage" --logger "trx;LogFileName=tests.trx" --results-directory TestResults
+      - name: Verify formatting
+        run: dotnet format --verify-no-changes --exclude tests/Hackathon.Assessment.Tests/Fixtures
+      - name: Upload test and coverage results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/
+          if-no-files-found: warn
