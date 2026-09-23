@@ -19,10 +19,17 @@ Commit başlıklarında `feat:`, `fix:`, `docs:`, `test:`, `chore:`, `ci:` kulla
 ## Zorunlu kontroller
 
 `main` ve `development` ruleset'leri PR, en az bir insan onayı ve şu check'leri
-zorunlu kılmalıdır: `ci / build-test`, `codeql`, `dependency-review` ve
+zorunlu kılmalıdır: `ci / build-test`, `dependency-review` ve
 `branch-policy`. Force-push yasaklanmalıdır. CI restore, uyarılar-hata build,
 GatewayLive hariç test/coverage/TRX ve format kontrolü yapar. P11 image tarama,
 ACR push ve App Service deploy aşamalarını ekler.
+
+P04'te kullanıcı talebiyle `codeql` workflow'u kaldırıldı: repository'de
+Code scanning etkin olmadığından CodeQL sonuçları ve `codeql` check'i şu anda
+mevcut değildir. `codeql` required check'i varsa repository yöneticisi
+koruma kuralını güncellemeden sonraki PR'lar bloklanabilir. Güvenlik taramasının
+etkin olduğu iddia edilmez. `dependency-review` workflow'u korunur; Dependency
+graph/GHAS kapalıysa check kırmızı kalır ve yönetici etkinleştirmelidir.
 
 Copilot PR'ındaki workflow'lar ilk kez çalışmadan önce insan onayı
 isteyebilir. Agent yerel build/test/format sonuçlarını PR'da belirtir;
