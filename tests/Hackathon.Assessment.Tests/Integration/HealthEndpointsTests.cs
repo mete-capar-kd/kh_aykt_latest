@@ -45,7 +45,7 @@ public sealed class HealthEndpointsTests
             ["RateLimit:QueueLimit"] = "0"
         };
         using var factory = new AssessmentApiFactory(settings: settings);
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         using var first = await client.PostAsJsonAsync("/api/ask", new { question = "valid question" });
         using var second = await client.PostAsJsonAsync("/api/ask", new { question = "valid question" });

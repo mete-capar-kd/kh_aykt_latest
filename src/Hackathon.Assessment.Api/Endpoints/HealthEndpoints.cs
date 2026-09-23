@@ -9,6 +9,7 @@ public static class HealthEndpoints
 {
     public static RouteHandlerBuilder MapHealthEndpoint(this IEndpointRouteBuilder endpoints) =>
         endpoints.MapGet("/health", HandleHealth)
+            .AllowAnonymous()
             .DisableRateLimiting()
             .WithName("Health")
             .WithSummary("Returns service health without calling external services.")

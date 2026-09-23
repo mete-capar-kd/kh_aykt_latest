@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Hackathon.Assessment.Api.Auth;
 using Hackathon.Assessment.Api.Contracts;
 using Hackathon.Assessment.Api.Domain;
 using Hackathon.Assessment.Api.Middleware;
@@ -34,10 +35,13 @@ public static class AskEndpoints
     public static RouteHandlerBuilder MapAskEndpoint(this IEndpointRouteBuilder endpoints) =>
         endpoints.MapPost("/api/ask", HandleAskAsync)
             .AddEndpointFilter<AskRequestValidationFilter>()
+            .RequireAuthorization(EntraIdAuthentication.AskPolicyName)
             .RequireRateLimiting(AskRateLimiting.PolicyName)
             .WithName("Ask")
             .WithSummary("Ask a question about a repository assessment.")
             .Produces<AskResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesValidationProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
