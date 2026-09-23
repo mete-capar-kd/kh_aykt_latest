@@ -1,0 +1,87 @@
+# ===== .NET build / publish çıktıları =====
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Pp]ublish/
+artifacts/
+*.nupkg
+*.snupkg
+.nuget/packages/
+BenchmarkDotNet.Artifacts/
+
+# ===== Test / coverage çıktıları =====
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+coverage/
+coverage*.json
+coverage*.xml
+coverage*.info
+coverage.cobertura.xml
+*.coverage
+*.coveragexml
+lcov.info
+
+# ===== IDE / editör =====
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*~
+*.DotSettings.user
+
+# ===== İşletim sistemi =====
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===== Secret / lokal yapılandırma (değerleri asla commit edilmez) =====
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
+**/secrets.json
+local.settings.json
+azureauth.json
+*.publishsettings
+**/Properties/PublishProfiles/*.pubxml
+**/Properties/PublishProfiles/*.pubxml.user
+*.pfx
+*.p12
+*.key
+*.pem
+*.jks
+
+# Test fixture'ları: scanner testleri için bilerek SAHTE .env içerir
+!tests/Hackathon.Assessment.Tests/Fixtures/**/.env
+
+# ===== Azure / Azurite lokal durumu =====
+.azure/
+__azurite_db*__.json
+__blobstorage__/
+__queuestorage__/
+AzuriteConfig
+
+# ===== Log / geçici dosyalar =====
+logs/
+*.log
+*.tmp
+*.temp
+tmp/
+*.dmp
+*.diagsession
+*.nettrace
+
+# ===== Yardımcı araç çıktıları =====
+node_modules/
+.venv/
+__pycache__/
+*.pyc

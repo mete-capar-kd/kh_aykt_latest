@@ -1,0 +1,48 @@
+name: branch-policy
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches:
+      - main
+      - development
+      - feature/**
+      - fix/**
+
+permissions: {}
+
+jobs:
+  branch-policy:
+    runs-on: ubuntu-latest
+    env:
+      BASE_REF: ${{ github.base_ref }}
+      HEAD_REF: ${{ github.head_ref }}
+    steps:
+      - name: Enforce source branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$BASE_REF" in
+            main)
+              if [[ "$HEAD_REF" != development ]]; then
+                echo "::error::Only development may open a PR to main."
+                exit 1
+              fi
+              ;;
+            development)
+              if [[ ! "$HEAD_REF" =~ ^(feature|fix)/[0-9]+-[a-z0-9-]+$ ]] && [[ ! "$HEAD_REF" =~ ^copilot/ ]]; then
+                echo "::error::PRs to development must come from feature/<issue-no>-<slug>, fix/<issue-no>-<slug>, or a Copilot coding-agent branch."
+                exit 1
+              fi
+              ;;
+            feature/*|fix/*)
+              if [[ ! "$HEAD_REF" =~ ^copilot/ ]]; then
+                echo "::error::Only copilot/* may open a PR to a feature or fix branch."
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::Unsupported PR target: $BASE_REF."
+              exit 1
+              ;;
+          esac

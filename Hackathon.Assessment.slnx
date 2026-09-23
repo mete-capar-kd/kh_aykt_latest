@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Hackathon.Assessment.Api/Hackathon.Assessment.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Hackathon.Assessment.Tests/Hackathon.Assessment.Tests.csproj" />
+  </Folder>
+</Solution>
