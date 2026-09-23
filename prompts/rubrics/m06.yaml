@@ -1,0 +1,40 @@
+metricId: m06
+metricName: Test ve Kod Kalitesi Standartları
+sourceRef: "UseCase §6.6"
+subChecks:
+  - id: m06-sc01
+    title: Unit ve integration testlerin varlığı
+    codeVerifiable: true
+  - id: m06-sc02
+    title: kritik iş kurallarının test edilmesi
+    codeVerifiable: true
+  - id: m06-sc03
+    title: test projesi yapısı
+    codeVerifiable: true
+  - id: m06-sc04
+    title: mock kullanımı
+    codeVerifiable: true
+  - id: m06-sc05
+    title: SonarQube yapılandırması
+    codeVerifiable: true
+  - id: m06-sc06
+    title: code coverage
+    codeVerifiable: true
+  - id: m06-sc07
+    title: cyclomatic complexity
+    codeVerifiable: true
+  - id: m06-sc08
+    title: duplicate code ve testlerin pipeline içinde çalıştırılması
+    codeVerifiable: true
+acceptanceCriteria:
+  - yalnızca test dosyası sayısına bakmamalı
+  - assertion kalitesini değerlendirmeli
+  - kritik akışların test edilip edilmediğini değerlendirmeli
+  - quality gate durumunu değerlendirmeli
+  - test piramidine uygun iyileştirme ihtiyacını değerlendirmeli.
+severityGuide:
+  critical: Test boşluğu kritik güvenlik veya geri döndürülemez veri akışını doğrulamasız bırakıyor.
+  high: Kritik iş kuralı ya da teslimat kapısı önemli regresyonu yakalayamıyor.
+  medium: Assertion, mock veya kapsam zayıflığı gerçek davranış riskini artırıyor.
+  low: Test yapısı ya da kalite yapılandırması sınırlı bakım yükü yaratıyor.
+  info: Kanıtlı, risk oluşturmayan test kalitesi iyileştirme fırsatı.

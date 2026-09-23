@@ -16,6 +16,7 @@ public sealed class EvidenceLedger
     private int _rejectedCount;
 
     public int RejectedCount => Volatile.Read(ref _rejectedCount);
+    public int FilesExamined => _seen.Count;
 
     public void MarkSeen(string path, int line)
     {

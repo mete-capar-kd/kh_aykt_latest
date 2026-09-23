@@ -113,6 +113,7 @@ public sealed class RepositoryHygieneTests
             "Microsoft.NET.Test.Sdk",
             "NetArchTest.Rules",
             "NSubstitute",
+            "YamlDotNet",
             "xunit",
             "xunit.runner.visualstudio",
             "Azure.Monitor.OpenTelemetry.AspNetCore"

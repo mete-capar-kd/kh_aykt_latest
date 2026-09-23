@@ -1,7 +1,9 @@
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
+using Hackathon.Assessment.Api.Agents;
 using Hackathon.Assessment.Api.Ai;
 using Hackathon.Assessment.Api.Auth;
+using Hackathon.Assessment.Api.Caching;
 using Hackathon.Assessment.Api.Contracts;
 using Hackathon.Assessment.Api.Endpoints;
 using Hackathon.Assessment.Api.Health;
@@ -34,6 +36,10 @@ builder.Services.AddSingleton<ApplicationUptime>();
 builder.Services.AddSingleton<SafetyMetrics>();
 builder.Services.AddSingleton<IInputGuard, InputGuard>();
 builder.Services.AddSingleton<IAskOrchestrator, StubAskOrchestrator>();
+builder.Services.AddSingleton(_ =>
+    new PromptCatalog(Path.Combine(AppContext.BaseDirectory, "prompts")));
+builder.Services.AddSingleton<ProfilerAgent>();
+builder.Services.AddSingleton<MetricEvaluator>();
 builder.Services.AddScoped<AskEndpoints.AskRequestValidationFilter>();
 builder.Services.AddHttpClient<IApimAiGatewayClient, ApimAiGatewayClient>(
         ApimAiGatewayClient.ConfigureHttpClient)
@@ -50,7 +56,25 @@ builder.Services.AddHttpClient("github")
         PooledConnectionLifetime = TimeSpan.FromMinutes(5),
         ConnectCallback = IpAddressPolicy.ConnectAsync
     });
-builder.Services.AddSingleton<IRepositorySnapshotProvider, GitHubRepositorySnapshotProvider>();
+builder.Services.AddSingleton<GitHubRepositorySnapshotProvider>();
+builder.Services.AddSingleton<IRepositorySnapshotProvider>(services =>
+    new SnapshotCache(
+        services.GetRequiredService<GitHubRepositorySnapshotProvider>(),
+        new SnapshotCacheOptions
+        {
+            SnapshotMaxBytes = services.GetRequiredService<IConfiguration>().GetValue(
+                "Cache:SnapshotMaxBytes", 536_870_912L)
+        }));
+builder.Services.AddSingleton(services => new MetricResultCache(
+    new MetricResultCacheOptions
+    {
+        MetricResultTtlMinutes = services.GetRequiredService<IConfiguration>().GetValue(
+            "Cache:MetricResultTtlMinutes", 120),
+        MetricResultMaxEntries = services.GetRequiredService<IConfiguration>().GetValue(
+            "Cache:MetricResultMaxEntries", 1000),
+        MetricDeadline = TimeSpan.FromSeconds(services.GetRequiredService<IConfiguration>().GetValue(
+            "Assessment:MetricTimeoutSeconds", 140))
+    }));
 builder.Services.AddSingleton<ISecretMasker, SecretMasker>();
 builder.Services.AddSingleton<GlobMatcher>();
 builder.Services.AddSingleton<IScannerRegistry>(services =>
@@ -108,6 +132,7 @@ builder.Services.AddAskRateLimiter();
 var app = builder.Build();
 
 _ = app.Services.GetRequiredService<IInputGuard>();
+_ = app.Services.GetRequiredService<PromptCatalog>();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();

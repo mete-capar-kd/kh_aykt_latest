@@ -1,0 +1,42 @@
+metricId: m05
+metricName: Loglama, İzlenebilirlik ve APM
+sourceRef: "UseCase §6.5"
+subChecks:
+  - id: m05-sc01
+    title: Structured logging
+    codeVerifiable: true
+  - id: m05-sc02
+    title: Application Insights entegrasyonu
+    codeVerifiable: true
+  - id: m05-sc03
+    title: correlation ID
+    codeVerifiable: true
+  - id: m05-sc04
+    title: distributed tracing
+    codeVerifiable: true
+  - id: m05-sc05
+    title: merkezi exception handling
+    codeVerifiable: true
+  - id: m05-sc06
+    title: log seviyeleri
+    codeVerifiable: true
+  - id: m05-sc07
+    title: hassas veri maskeleme
+    codeVerifiable: true
+  - id: m05-sc08
+    title: dependency tracking
+    codeVerifiable: true
+  - id: m05-sc09
+    title: health ve telemetry yapılandırması
+    codeVerifiable: true
+acceptanceCriteria:
+  - observability eksikliğini doğru tespit etmeli
+  - loglama ile monitoring kavramlarını karıştırmamalı
+  - hassas veri loglarını güvenlik riskiyle ilişkilendirmeli
+  - kurum standardına uygun çözüm önermeli.
+severityGuide:
+  critical: Log veya telemetry doğrulanmış biçimde geniş kapsamlı hassas veri açığa çıkarıyor.
+  high: Kritik hata ve bağımlılıklar izlenemiyor ya da önemli hassas veri kaydı bulunuyor.
+  medium: Correlation, tracing veya merkezi hata eksikliği olay çözümünü somut biçimde engelliyor.
+  low: Log seviyesi veya telemetry ayrıntısı sınırlı operasyon yükü yaratıyor.
+  info: Kanıtlı, risk oluşturmayan observability iyileştirme fırsatı.

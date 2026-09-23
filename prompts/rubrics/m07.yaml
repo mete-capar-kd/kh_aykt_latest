@@ -1,0 +1,42 @@
+metricId: m07
+metricName: CI/CD ve Kaynak Kod Yönetimi
+sourceRef: "UseCase §6.7"
+subChecks:
+  - id: m07-sc01
+    title: Pipeline dosyaları
+    codeVerifiable: true
+  - id: m07-sc02
+    title: build ve test adımları
+    codeVerifiable: true
+  - id: m07-sc03
+    title: code quality gate
+    codeVerifiable: true
+  - id: m07-sc04
+    title: security/dependency scanning
+    codeVerifiable: true
+  - id: m07-sc05
+    title: artifact yönetimi
+    codeVerifiable: true
+  - id: m07-sc06
+    title: ortam bazlı deployment
+    codeVerifiable: true
+  - id: m07-sc07
+    title: production onayı
+    codeVerifiable: true
+  - id: m07-sc08
+    title: secret kullanımı
+    codeVerifiable: true
+  - id: m07-sc09
+    title: branch ve PR politikalarına ilişkin mevcut kanıtlar
+    codeVerifiable: false
+acceptanceCriteria:
+  - pipeline dosyalarını analiz etmeli
+  - eksik aşamaları doğru sıralamayla açıklamalı
+  - kaynak koddan doğrulanamayacak branch policy konularında varsayım yapmamalı
+  - kanıt yoksa `Değerlendirilemedi` statüsünü kullanmalı.
+severityGuide:
+  critical: Teslimat akışı production secret'ını veya kritik sistemi doğrudan açığa çıkarıyor.
+  high: Doğrulamasız artifact ya da kontrolsüz production deployment önemli risk yaratıyor.
+  medium: Eksik test, tarama veya ortam ayrımı teslimat güvencesini somut biçimde zayıflatıyor.
+  low: Pipeline veya artifact yönetimi sapması sınırlı operasyon yükü yaratıyor.
+  info: Kanıtlı, risk oluşturmayan teslimat iyileştirme fırsatı.

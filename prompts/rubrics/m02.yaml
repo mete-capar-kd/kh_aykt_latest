@@ -1,0 +1,36 @@
+metricId: m02
+metricName: Kimlik Doğrulama ve Yetkilendirme
+sourceRef: "UseCase §6.2"
+subChecks:
+  - id: m02-sc01
+    title: Microsoft Entra ID veya kurumsal kimlik altyapısı
+    codeVerifiable: true
+  - id: m02-sc02
+    title: authentication yapılandırması
+    codeVerifiable: true
+  - id: m02-sc03
+    title: endpoint bazlı authorization
+    codeVerifiable: true
+  - id: m02-sc04
+    title: rol/claim/permission kontrolleri
+    codeVerifiable: true
+  - id: m02-sc05
+    title: anonymous endpointler
+    codeVerifiable: true
+  - id: m02-sc06
+    title: token validation
+    codeVerifiable: true
+  - id: m02-sc07
+    title: 401/403 kullanımı ve service-to-service kimlik doğrulaması
+    codeVerifiable: true
+acceptanceCriteria:
+  - korumasız endpointleri tespit etmeli
+  - endpoint veya metot seviyesinde kanıt göstermeli
+  - authentication ile authorization farkını doğru değerlendirmeli
+  - yetkisiz erişim etkisini açıklamalı.
+severityGuide:
+  critical: Korumasız erişim kritik işlem veya hassas veriyi doğrudan açığa çıkarıyor.
+  high: Yetkilendirme ya da token doğrulama eksikliği önemli yetki yükseltmeye izin veriyor.
+  medium: Policy kapsamı veya 401/403 davranışı sınırlı fakat gerçek erişim riski yaratıyor.
+  low: Kimlik yapılandırmasındaki yerel sapma savunmayı zayıflatıyor ancak doğrudan bypass göstermiyor.
+  info: Kanıtlı, risk oluşturmayan kimlik kontrolü iyileştirme fırsatı.

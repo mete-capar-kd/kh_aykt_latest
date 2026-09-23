@@ -1,0 +1,48 @@
+metricId: m09
+metricName: Performans, Dayanıklılık ve Ölçeklenebilirlik
+sourceRef: "UseCase §6.9"
+subChecks:
+  - id: m09-sc01
+    title: Asenkron programlama
+    codeVerifiable: true
+  - id: m09-sc02
+    title: blocking çağrılar
+    codeVerifiable: true
+  - id: m09-sc03
+    title: N+1 sorgular
+    codeVerifiable: true
+  - id: m09-sc04
+    title: cache kullanımı
+    codeVerifiable: true
+  - id: m09-sc05
+    title: timeout
+    codeVerifiable: true
+  - id: m09-sc06
+    title: retry
+    codeVerifiable: true
+  - id: m09-sc07
+    title: circuit breaker
+    codeVerifiable: true
+  - id: m09-sc08
+    title: background job
+    codeVerifiable: true
+  - id: m09-sc09
+    title: idempotency
+    codeVerifiable: true
+  - id: m09-sc10
+    title: büyük veri sorguları
+    codeVerifiable: true
+  - id: m09-sc11
+    title: stateless tasarım ve yatay ölçeklenebilirlik
+    codeVerifiable: true
+acceptanceCriteria:
+  - potansiyel ve kesin performans sorunlarını ayırmalı (`confidence`)
+  - sorunun etkisini açıklamalı
+  - ölçüm gerektiren konularda kesin hüküm vermemeli
+  - profiling veya yük testi ihtiyacını belirtebilmeli.
+severityGuide:
+  critical: Dayanıklılık hatası geniş kesinti veya geri döndürülemez işlem tekrarı yaratıyor.
+  high: Blocking, sınırsız sorgu veya hatalı retry kritik akışı belirgin biçimde çökertiyor.
+  medium: Timeout, cache veya ölçek tasarımı gerçek yükte somut risk taşıyor.
+  low: Sınırlı performans ya da dayanıklılık sapması yerel maliyet yaratıyor.
+  info: Kanıtlı, risk oluşturmayan performans iyileştirme fırsatı.

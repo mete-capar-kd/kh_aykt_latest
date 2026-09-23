@@ -1,0 +1,40 @@
+metricId: m10
+metricName: Dokümantasyon ve Mimari Yönetişim
+sourceRef: "UseCase §6.10"
+subChecks:
+  - id: m10-sc01
+    title: README
+    codeVerifiable: true
+  - id: m10-sc02
+    title: kurulum açıklamaları
+    codeVerifiable: true
+  - id: m10-sc03
+    title: mimari diyagram
+    codeVerifiable: true
+  - id: m10-sc04
+    title: API dokümantasyonu
+    codeVerifiable: true
+  - id: m10-sc05
+    title: ADR kayıtları
+    codeVerifiable: true
+  - id: m10-sc06
+    title: teknoloji envanteri
+    codeVerifiable: true
+  - id: m10-sc07
+    title: uygulama sahibi
+    codeVerifiable: true
+  - id: m10-sc08
+    title: destek modeli ve operasyonel sorumluluklar
+    codeVerifiable: true
+acceptanceCriteria:
+  - dokümanın yalnızca varlığını değil yeterliliğini değerlendirmeli
+  - eksikleri göstermeli
+  - koddan çıkarılan mimari görünümü özetlemeli
+  - kullanılabilir içerik şablonu önermeli.
+  - Owner/destek bilgisi repo'da yoksa uydurmamalı.
+severityGuide:
+  critical: Yanlış operasyon talimatı kritik sistem veya veri üzerinde doğrudan yıkıcı işlem riski yaratıyor.
+  high: Eksik ya da yanlış sahiplik ve operasyon bilgisi önemli müdahale riskine sahip.
+  medium: Mimari, API veya kurulum belgesi doğrulanmış biçimde önemli kullanım hatası yaratıyor.
+  low: Yerel doküman veya yönetişim eksikliği sınırlı onboarding ve bakım yükü oluşturuyor.
+  info: Kanıtlı, risk oluşturmayan dokümantasyon iyileştirme fırsatı.

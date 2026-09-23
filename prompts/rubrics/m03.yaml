@@ -1,0 +1,43 @@
+metricId: m03
+metricName: Uygulama Güvenliği ve Secret Yönetimi
+sourceRef: "UseCase §6.3"
+subChecks:
+  - id: m03-sc01
+    title: Hardcoded secret
+    codeVerifiable: true
+  - id: m03-sc02
+    title: API key
+    codeVerifiable: true
+  - id: m03-sc03
+    title: connection string
+    codeVerifiable: true
+  - id: m03-sc04
+    title: Key Vault kullanımı
+    codeVerifiable: true
+  - id: m03-sc05
+    title: input validation
+    codeVerifiable: true
+  - id: m03-sc06
+    title: SQL Injection
+    codeVerifiable: true
+  - id: m03-sc07
+    title: CORS ayarları
+    codeVerifiable: true
+  - id: m03-sc08
+    title: güvenlik headerları
+    codeVerifiable: true
+  - id: m03-sc09
+    title: hassas veri loglama ve güvensiz şifreleme yöntemleri
+    codeVerifiable: true
+acceptanceCriteria:
+  - güvenlik açığını doğru sınıflandırmalı
+  - secret değerlerini raporda açık göstermemeli
+  - kanıtı dosya/satır bilgisiyle sunmalı
+  - güvenli alternatif önermeli
+  - kritik bulguları yüksek öncelikle raporlamalı.
+severityGuide:
+  critical: Doğrudan erişilebilir secret veya sömürülebilir akış kritik sistem ya da veri kaybı yaratıyor.
+  high: Güvenlik kontrolü eksikliği önemli gizlilik veya bütünlük etkisine sahip.
+  medium: Sömürü ek koşul gerektiriyor ancak doğrulanmış güvenlik riski bulunuyor.
+  low: Savunma derinliği zayıf ve etkisi sınırlı.
+  info: Kanıtlı, risk oluşturmayan güvenlik güçlendirme fırsatı.
