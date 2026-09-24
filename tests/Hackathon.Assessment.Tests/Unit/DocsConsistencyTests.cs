@@ -1,4 +1,6 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using Hackathon.Assessment.Api.Contracts;
 using Xunit;
 
 namespace Hackathon.Assessment.Tests.Unit;
@@ -151,6 +153,26 @@ public sealed class DocsConsistencyTests
         Assert.Equal(
             ["does-not-exist.md"],
             FindBrokenRelativeLinks(root, markdownFile, "[broken](does-not-exist.md)"));
+    }
+
+    [Fact]
+    public void ApiExampleResponseDeserializesWithApplicationJsonContext()
+    {
+        var apiDocument = File.ReadAllText(Path.Combine(RepositoryRoot(), "docs/api.md"));
+        var example = Regex.Matches(apiDocument, @"```json\s*(?<json>[\s\S]*?)```")
+            .Select(match => match.Groups["json"].Value)
+            .Single(json => json.Contains("\"answerType\"", StringComparison.Ordinal)
+                && json.Contains("\"assessment\"", StringComparison.Ordinal));
+        var options = new JsonSerializerOptions(AppJsonContext.Default.Options)
+        {
+            ReadCommentHandling = JsonCommentHandling.Skip
+        };
+        var context = new AppJsonContext(options);
+
+        var response = JsonSerializer.Deserialize(example, context.AskResponse);
+
+        Assert.NotNull(response);
+        Assert.Equal(10, response.Assessment?.Metrics.Length);
     }
 
     [Fact]

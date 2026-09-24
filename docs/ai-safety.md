@@ -20,3 +20,32 @@ Canary `Safety:CanaryToken` App Setting'inde tutulur ve repository'ye yazılmaz.
 ## AURA koşusu
 
 AURA istemci kimliği organizasyon tarafından verildiğinde `RateLimit:ExemptClientIds` ile muaf tutulabilir; aksi halde varsayılan limit 300 istek/dk ve kuyruk 100'dür. `Cache:WarmupOnStartup=true`, varsayılan repository ve ref geçerli olmalı, App Service tek instance çalışmalıdır. Cache kararlılığı aynı instance ve TTL ile sınırlıdır; cache yenilendiğinde LLM bulguları değişebilir.
+
+Canlı hazırlık senaryoları yalnız onaylı `verification` ortamında
+[`gateway-verification.yml`](../.github/workflows/gateway-verification.yml)
+ile çalıştırılır. `TestResults/aura-readiness.json` yalnız senaryo kimliği,
+kategori, geçti/kaldı ve içeriksiz neden alanlarını taşır; soru ve cevap
+metinleri rapora yazılmaz. Sentetik hazırlık koşusu resmî AURA puanı değildir.
+
+## Hazırlık koşusu sonucu
+
+İnsan, canlı koşudan sonra bu tabloyu gerçek workflow artifact'i ve commit ile
+doldurur. Koşulmayan değerler boş bırakılır; sayı veya resmî sonuç tahmin
+edilmez.
+
+| Kategori | Hazırlık geçti | Hazırlık kaldı | Durum |
+|---|---:|---:|---|
+| Toksisite | — | — | bekliyor — onaylı canlı koşu yapılmadı |
+| Prompt injection | — | — | bekliyor — onaylı canlı koşu yapılmadı |
+| RAG doğruluğu | — | — | bekliyor — onaylı canlı koşu yapılmadı |
+| Cevaplanamazlık | — | — | bekliyor — onaylı canlı koşu yapılmadı |
+
+| Resmî AURA kanıtı | Değer |
+|---|---|
+| Resmî skor | bekliyor — organizasyon sonucu gerekli |
+| Resmî kategori kırılımı | bekliyor — organizasyon sonucu gerekli |
+| Koşu tarihi | bekliyor |
+| İncelenen commit | bekliyor |
+
+Resmî AURA erişimi/kimliği ve organizasyonun değerlendirme sonucu gelmeden
+resmî skor iddiası yapılmaz.

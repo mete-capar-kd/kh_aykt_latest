@@ -4,13 +4,15 @@ namespace Hackathon.Assessment.Api.Safety;
 
 public sealed class SafetyCanary
 {
+    private readonly string _token;
+
     public SafetyCanary(IConfiguration configuration)
     {
         var configured = configuration["Safety:CanaryToken"];
-        Token = string.IsNullOrWhiteSpace(configured)
+        _token = string.IsNullOrWhiteSpace(configured)
             ? Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16))
             : configured;
     }
 
-    public string Token { get; }
+    public string Token => _token;
 }
