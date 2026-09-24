@@ -91,3 +91,33 @@ komutunu uygular; `APP_VERSION` ve `GIT_COMMIT_SHA` App Settings'ini önceki
 image ile uyumlu hale getirir. `/health` SHA'sını yeniden doğrular. İşlem
 önceki başarılı container'ı geri getirir, kaynakları yeniden oluşturmaz.
 `/api/ask` smoke, organizasyon API audience/kimliği yoksa canlı kanıt sayılmaz.
+
+## Onaylı Gateway doğrulaması
+
+[`gateway-verification.yml`](../.github/workflows/gateway-verification.yml)
+yalnız `workflow_dispatch` ile ve `verification`
+environment onayı altında çalışır. Workflow, OIDC ile Azure'a giriş yapıp
+`API_AUDIENCE` için kısa ömürlü `API_TOKEN` alır; token log'a veya artifact'e
+yazılmaz. `API_BASE_URL` (HTTPS), `APIM_BASE_URL`, `APIM_ROUTE_STYLE`,
+`APIM_API_VERSION`, `APIM_AUTH_SCHEME`, `APIM_AUTH_HEADER_NAME`,
+`APIM_DEPLOYMENT_CHEAP` ve `APIM_CACHE_STATUS_HEADER` environment variable
+olarak sağlanır. Canlı direct-Gateway credential'ı `APIM_TEST_KEY`, yalnız
+sentetik PII girdileri `PII_TEST_INPUTS_JSON` environment secret'ıdır.
+
+`PII_TEST_INPUTS_JSON` JSON array'inde her nesne `kind` (`email`, `phone`,
+`tckn` veya `secret-like`) ve `value` taşır; her tür için organizasyonun
+ürettiği sentetik bir değer bulunmalıdır. Bu değerler repoya veya rapora
+kopyalanmaz. Testler uygulamanın `ISecretMasker` katmanını atlayıp APIM'e
+doğrudan gider. PII sonucu ham girdinin APIM cevabında bulunmadığını kontrol
+eder; secret-benzeri girdi 4xx ile engellenmeli veya `***MASKED***` ile
+maskelenmelidir. Gateway log/telemetry gözlemi ayrıca organizasyon tarafından
+manuel olarak kaydedilir.
+
+Semantic cache koşusu için `APIM_CACHE_STATUS_HEADER` doğrulanmış APIM header
+adını taşımalıdır; değer ilk çağrıda `miss`, anlamca benzer ikinci çağrıda
+`hit` olmalıdır. Header yoksa test `BLOCKED` olur; `cachedTokens` tek başına
+cache kanıtı sayılmaz. Usage ve latency değerleri
+`TestResults/gateway-semantic-cache.json` dosyasına içerik taşımadan raporlanır.
+`aura-readiness`, `gateway-pii` ve `gateway-semantic-cache` artifact'leri
+soru/cevap veya secret içermez. Workflow veya canlı kanıtlar henüz
+çalıştırılmadıysa durum `BEKLİYOR`; başarılı varsayılmaz.

@@ -1,41 +1,34 @@
 # Mimari genel bakış
 ```mermaid
-sequenceDiagram
-    participant C as Client / Değerlendirici
-    participant E as Entra ID
-    participant API as API /api/ask
-    participant G as Input Guard
-    participant R as Ask Router
-    participant O as Orkestratör
-    participant P as Repo Profiler
-    participant M as Metric Evaluator ×10
-    participant S as Report Synthesizer
-    participant OG as Output Guard
-    participant APIM as Organizasyon APIM AI Gateway
-    participant F as Azure AI Foundry
-    C->>E: SSO bearer token
-    E-->>C: JWT
-    C->>API: POST /api/ask + JWT
-    API->>G: Doğrulanmış istek
-    G->>R: Normalize soru
-    R->>APIM: Router çağrısı (IApimAiGatewayClient)
-    APIM->>F: Yetkili model isteği
-    F-->>APIM: Router sonucu
-    APIM-->>R: Router sonucu
-    Note over R,S: Tüm roller IApimAiGatewayClient → APIM → Foundry kullanır; doğrudan Foundry çağrısı yasaktır
-    R->>O: İzinli niyet / metrikler
-    O->>P: Snapshot özeti
-    P->>APIM: Profiler çağrısı
-    APIM-->>P: Profil
-    O->>M: İzole metrik değerlendirmeleri
-    M->>APIM: Evaluator çağrıları
-    APIM-->>M: Bulgular
-    O->>S: Doğrulanmış bulgular + deterministik puan
-    S->>APIM: Synthesis çağrısı
-    APIM-->>S: Yanıt
-    S->>OG: Yanıt + kanıtlar
-    OG-->>API: Maskelenmiş ve doğrulanmış çıktı
-    API-->>C: Assessment yanıtı
+flowchart LR
+    Client["Client / evaluator"] -->|"Sign-in"| Entra["Microsoft Entra ID"]
+    Entra -->|"JWT bearer"| Client
+    Client -->|"POST /api/ask + JWT"| Ask["POST /api/ask"]
+    Ask --> InputGuard["Input Guard"]
+    InputGuard --> Router["Ask Router"]
+    Router -->|"unsafe / out_of_scope"| Refusal["Fixed safe refusal"]
+    Router -->|"assessment / repo_question"| Orchestrator["Orchestrator (no LLM calls)"]
+    Orchestrator --> Snapshot["Pinned GitHub snapshot / process cache"]
+    Snapshot --> Profiler["Repo Profiler"]
+    Snapshot --> Evaluators["Metric Evaluator ×10 (isolated)"]
+    Profiler --> Scoring["Deterministic scoring"]
+    Evaluators --> Scoring
+    Scoring --> Synthesizer["Report Synthesizer"]
+    Refusal --> OutputGuard
+    Synthesizer --> OutputGuard["Output Guard"]
+    OutputGuard --> Response["Masked, evidence-validated response"]
+    Response --> Client
+
+    Router -. "model call" .-> GatewayClient["IApimAiGatewayClient"]
+    Profiler -. "model call" .-> GatewayClient
+    Evaluators -. "model calls" .-> GatewayClient
+    Synthesizer -. "model call" .-> GatewayClient
+    GatewayClient --> APIM["Organization APIM AI Gateway"]
+    APIM --> Foundry["Azure AI Foundry"]
+    Foundry --> APIM
+    APIM --> GatewayClient
+
+    Anonymous["Anonymous client"] --> Health["GET /health"]
 ```
 
 | Bileşen | Klasör | Sorumlu issue |
@@ -55,6 +48,7 @@ sequenceDiagram
 
 Tüm model trafiği `IApimAiGatewayClient` üzerinden ortak APIM AI Gateway'e gider;
 `Apim:RouteStyle` `AzureDeployments` deployment URL'si veya OpenAI v1 route'unu
-seçer. Foundry'ye doğrudan trafik yasaktır. Ayrıntılar: [spec dizini](spec/README.md),
+seçer. Foundry'ye doğrudan trafik yasaktır. `GET /health` anonimdir ve AI/APIM
+çağrısı yapmaz. Ayrıntılar: [spec dizini](spec/README.md),
 [solution yapısı](spec/03-solution-yapisi.md), [runtime zinciri](spec/02-runtime-zinciri.md),
 [API sözleşmesi](spec/11-api-sozlesmesi.md), [ADR'ler](adr/README.md).

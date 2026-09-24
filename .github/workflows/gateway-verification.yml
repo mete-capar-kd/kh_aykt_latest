@@ -1,0 +1,91 @@
+name: gateway-verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: GatewayLive test suite to run
+        type: choice
+        options:
+          - aura
+          - pii
+          - cache
+          - all
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: verification
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Run selected GatewayLive suite
+        env:
+          SUITE: ${{ inputs.suite }}
+          API_AUDIENCE: ${{ vars.API_AUDIENCE }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          APIM__BASEURL: ${{ vars.APIM_BASE_URL }}
+          APIM__ROUTESTYLE: ${{ vars.APIM_ROUTE_STYLE }}
+          APIM__APIVERSION: ${{ vars.APIM_API_VERSION }}
+          APIM__AUTH__SCHEME: ${{ vars.APIM_AUTH_SCHEME }}
+          APIM__AUTH__HEADERNAME: ${{ vars.APIM_AUTH_HEADER_NAME }}
+          APIM__DEPLOYMENTS__CHEAP: ${{ vars.APIM_DEPLOYMENT_CHEAP }}
+          APIM__CACHESTATUSHEADER: ${{ vars.APIM_CACHE_STATUS_HEADER }}
+          APIM_TEST_KEY: ${{ secrets.APIM_TEST_KEY }}
+          PII_TEST_INPUTS_JSON: ${{ secrets.PII_TEST_INPUTS_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -z "$API_AUDIENCE"; then
+            echo "::error::Missing verification variable: API_AUDIENCE"
+            exit 1
+          fi
+          api_token="$(az account get-access-token --resource "$API_AUDIENCE" --query accessToken -o tsv)"
+          if test -z "$api_token"; then
+            echo "::error::Could not acquire an API access token"
+            exit 1
+          fi
+          echo "::add-mask::$api_token"
+          case "$SUITE" in
+            aura)
+              filter='Category=GatewayLive&FullyQualifiedName~AuraReadiness'
+              ;;
+            pii)
+              filter='Category=GatewayLive&FullyQualifiedName~GatewayPiiTests'
+              ;;
+            cache)
+              filter='Category=GatewayLive&FullyQualifiedName~GatewaySemanticCacheTests'
+              ;;
+            all)
+              filter='Category=GatewayLive'
+              ;;
+            *)
+              echo "::error::Unsupported GatewayLive suite"
+              exit 1
+              ;;
+          esac
+          API_TOKEN="$api_token" dotnet test \
+            --filter "$filter" \
+            --logger "trx;LogFileName=gateway-verification.trx" \
+            --results-directory TestResults
+      - name: Upload verification results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-verification-results
+          path: TestResults/
+          if-no-files-found: warn
